@@ -15,23 +15,39 @@ from core.sipp_engine import SippEngine
 
 
 def test_config_manager():
-    print("-> Testando ConfigManager...")
-    mgr = ConfigManager("test_config.json")
+    print("-> Testando ConfigManager e isolamento .env...")
+    mgr = ConfigManager("test_config.json", "test.env")
     assert mgr.get("asterisk_ip") == DEFAULT_CONFIG["asterisk_ip"]
     assert mgr.get("usuario_auth") == DEFAULT_CONFIG["usuario_auth"]
     assert len(mgr.get("destinations")) == 10
     
     mgr.set("simultaneas", 200)
     mgr.set("usuario_auth", "user1002")
+    mgr.set("senha", "SegredoUltra123")
     mgr.save_config()
     
-    mgr2 = ConfigManager("test_config.json")
+    # 1. Verifica se no arquivo JSON a senha ficou vazia (Zero Leak)
+    import json
+    with open("test_config.json", "r", encoding="utf-8") as f:
+        saved_json = json.load(f)
+    assert saved_json.get("senha") == ""
+    assert saved_json.get("simultaneas") == 200
+
+    # 2. Verifica se no test.env a senha foi salva corretamente
+    with open("test.env", "r", encoding="utf-8") as f:
+        env_text = f.read()
+    assert "SIP_SENHA=SegredoUltra123" in env_text
+
+    # 3. Recarrega o ConfigManager e verifica se a senha é recuperada do .env
+    mgr2 = ConfigManager("test_config.json", "test.env")
     assert mgr2.get("simultaneas") == 200
     assert mgr2.get("usuario_auth") == "user1002"
+    assert mgr2.get("senha") == "SegredoUltra123"
     
-    if os.path.exists("test_config.json"):
-        os.remove("test_config.json")
-    print("  [OK] ConfigManager validado!")
+    for f_clean in ["test_config.json", "test.env"]:
+        if os.path.exists(f_clean):
+            os.remove(f_clean)
+    print("  [OK] ConfigManager e isolamento .env validados com sucesso!")
 
 
 def test_strategy_manager():

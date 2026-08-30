@@ -8,6 +8,12 @@ env/
 venv/
 ENV/
 
+# Environment & Secrets (NUNCA COMITAR)
+.env
+.env.local
+.env.*
+*.env
+
 # SIPp Temporaries & Logs
 *.log
 *_errors.log

@@ -1,13 +1,21 @@
 """
 Config Manager - Gerencia o salvamento e carregamento de configurações do aplicativo.
-Persiste parâmetros SIP, estratégias de discagem e lista de destinos ponderados em JSON.
+Persiste parâmetros SIP e estratégias de discagem em JSON, com suporte a variáveis de ambiente (.env)
+para proteção estrita de credenciais sensíveis (Zero Leaks).
 """
 
 import json
 import os
 from typing import Dict, Any, List
 
+try:
+    from dotenv import load_dotenv, set_key
+    DOTENV_AVAILABLE = True
+except ImportError:
+    DOTENV_AVAILABLE = False
+
 CONFIG_FILE = "config.json"
+ENV_FILE = ".env"
 
 DEFAULT_CONFIG: Dict[str, Any] = {
     # Conexão SIP (Aba 1)
@@ -17,7 +25,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "sip_domain": "192.168.68.205",
     "ramal": "108$1002",
     "usuario_auth": "108$1002",
-    "senha": "<*L5-Callbox*>",
+    "senha": "",  # Protegido no .env por padrão
     "local_ip": "",
     "local_port": "",  # Vazio = porta aleatória / dinâmica
     "media_port": "6000",  # Porta base RTP
@@ -61,49 +69,107 @@ DEFAULT_CONFIG: Dict[str, Any] = {
 
 
 class ConfigManager:
-    """Carrega e persiste as configurações em arquivo JSON local."""
+    """Carrega e persiste as configurações protegendo credenciais com .env."""
 
-    def __init__(self, file_path: str = CONFIG_FILE):
+    def __init__(self, file_path: str = CONFIG_FILE, env_path: str = ENV_FILE):
         self.file_path = file_path
+        self.env_path = env_path
+        self._load_env_file()
         self.config: Dict[str, Any] = self.load_config()
 
-    def load_config(self) -> Dict[str, Any]:
-        """Lê o arquivo config.json ou cria com valores padrão se não existir."""
-        if not os.path.exists(self.file_path):
-            self.save_config(DEFAULT_CONFIG)
-            return DEFAULT_CONFIG.copy()
+    def _load_env_file(self):
+        """Carrega variáveis do arquivo .env com dotenv ou parser nativo."""
+        if os.path.exists(self.env_path):
+            if DOTENV_AVAILABLE:
+                load_dotenv(self.env_path, override=True)
+            else:
+                try:
+                    with open(self.env_path, "r", encoding="utf-8") as f:
+                        for line in f:
+                            clean = line.strip()
+                            if clean and not clean.startswith("#") and "=" in clean:
+                                k, v = clean.split("=", 1)
+                                os.environ[k.strip()] = v.strip()
+                except Exception:
+                    pass
 
-        try:
-            with open(self.file_path, "r", encoding="utf-8") as f:
-                saved = json.load(f)
-            
-            # Mescla com defaults para garantir chaves novas
-            merged = DEFAULT_CONFIG.copy()
-            merged.update(saved)
-            
-            # Garante que lista de destinos tem tamanho 10
-            dests = merged.get("destinations", [])
-            while len(dests) < 10:
-                dests.append({"enabled": False, "number": "", "description": "", "weight": 10})
-            merged["destinations"] = dests[:10]
-            
-            return merged
-        except Exception as e:
-            print(f"[ConfigManager] Erro ao ler {self.file_path}: {e}. Usando padrões.")
-            return DEFAULT_CONFIG.copy()
+    def load_config(self) -> Dict[str, Any]:
+        """Lê config.json e mescla com variáveis de ambiente do .env."""
+        base_cfg = DEFAULT_CONFIG.copy()
+
+        if os.path.exists(self.file_path):
+            try:
+                with open(self.file_path, "r", encoding="utf-8") as f:
+                    saved = json.load(f)
+                base_cfg.update(saved)
+            except Exception as e:
+                print(f"[ConfigManager] Erro ao ler {self.file_path}: {e}. Usando padrões.")
+
+        # Injeta variáveis de ambiente (.env) com prioridade para segredos
+        if os.getenv("SIP_SENHA"):
+            base_cfg["senha"] = os.getenv("SIP_SENHA")
+        if os.getenv("SIP_RAMAL"):
+            base_cfg["ramal"] = os.getenv("SIP_RAMAL")
+        if os.getenv("SIP_USUARIO_AUTH"):
+            base_cfg["usuario_auth"] = os.getenv("SIP_USUARIO_AUTH")
+        if os.getenv("SIP_ASTERISK_IP"):
+            base_cfg["asterisk_ip"] = os.getenv("SIP_ASTERISK_IP")
+        if os.getenv("SIP_ASTERISK_PORT"):
+            base_cfg["asterisk_port"] = os.getenv("SIP_ASTERISK_PORT")
+        if os.getenv("SIP_DOMAIN"):
+            base_cfg["sip_domain"] = os.getenv("SIP_DOMAIN")
+
+        # Garante lista de destinos com 10 slots
+        dests = base_cfg.get("destinations", [])
+        while len(dests) < 10:
+            dests.append({"enabled": False, "number": "", "description": "", "weight": 10})
+        base_cfg["destinations"] = dests[:10]
+
+        return base_cfg
 
     def save_config(self, new_config: Dict[str, Any] = None) -> bool:
-        """Salva o dicionário de configurações no arquivo JSON."""
+        """
+        Salva parâmetros gerais no config.json (com senha vazia para segurança)
+        e salva credenciais confidenciais no .env (ignorado no git).
+        """
         if new_config is not None:
             self.config = new_config
 
         try:
+            # 1. Salva credenciais confidenciais no .env
+            self._save_env_file()
+
+            # 2. Salva config.json higienizado (sem vazar senha)
+            safe_json_config = self.config.copy()
+            safe_json_config["senha"] = ""  # Sempre limpo no JSON para evitar vazamentos em git commit
+
             with open(self.file_path, "w", encoding="utf-8") as f:
-                json.dump(self.config, f, indent=4, ensure_ascii=False)
+                json.dump(safe_json_config, f, indent=4, ensure_ascii=False)
+
             return True
         except Exception as e:
             print(f"[ConfigManager] Erro ao salvar {self.file_path}: {e}")
             return False
+
+    def _save_env_file(self):
+        """Atualiza o arquivo .env de forma segura."""
+        env_content = (
+            "# ============================================================\n"
+            "# SIPp Load Tester Pro - Credenciais e Variáveis de Ambiente\n"
+            "# ESTE ARQUIVO É SEGURO E NUNCA DEVE SER COMITADO NO GIT (.gitignore)\n"
+            "# ============================================================\n\n"
+            f"SIP_ASTERISK_IP={self.config.get('asterisk_ip', '')}\n"
+            f"SIP_ASTERISK_PORT={self.config.get('asterisk_port', '5060')}\n"
+            f"SIP_DOMAIN={self.config.get('sip_domain', '')}\n"
+            f"SIP_RAMAL={self.config.get('ramal', '')}\n"
+            f"SIP_USUARIO_AUTH={self.config.get('usuario_auth', '')}\n"
+            f"SIP_SENHA={self.config.get('senha', '')}\n"
+        )
+        try:
+            with open(self.env_path, "w", encoding="utf-8") as f:
+                f.write(env_content)
+        except Exception as e:
+            print(f"[ConfigManager] Erro ao salvar {self.env_path}: {e}")
 
     def get(self, key: str, default: Any = None) -> Any:
         return self.config.get(key, default)
@@ -115,5 +181,5 @@ class ConfigManager:
         """Retorna apenas os destinos habilitados e com número preenchido."""
         return [
             d for d in self.config.get("destinations", [])
-            if d.get("enabled", False) and str(d.get("number", "")).strip()
+            if d.get("enabled") and d.get("number", "").strip()
         ]
