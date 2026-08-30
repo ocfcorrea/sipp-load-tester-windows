@@ -33,7 +33,9 @@ Chamadas_Externa_Simultaneas_SIPp/
 ├── app.py                      # Ponto de entrada principal da aplicação GUI
 ├── iniciar_app.bat             # Inicializador rápido de 1 clique para Windows
 ├── requirements.txt            # Dependências Python fixadas
-├── config.json                 # Configurações salvas (conexão, portas, estratégias)
+├── config.json                 # Configurações salvas da UI (sanitizado, Zero Leak)
+├── .env                        # Credenciais e segredos locais (ignorado no git)
+├── .env.example                # Modelo de variáveis de ambiente para versionamento
 ├── .gitignore                  # Higiene de repositório e proteção de arquivos temporários
 ├── README.md                   # Documentação completa do projeto
 ├── run.sh                      # Script utilitário em Bash (compatível com WSL/Git Bash)
@@ -195,13 +197,25 @@ O script detecta automaticamente o ambiente virtual Python (`.venv`), instala as
 
 ---
 
-## 🛡️ Camada de Segurança Integrada
+## 🛡️ Camada de Segurança & Proteção de Segredos (.env)
 
-O projeto conta com a classe `SecurityValidator` (`core/security.py`):
-- **Prevenção contra Injeção de Cabeçalho SIP**: Validação estrita de hosts, portas e ramais contra caracteres CRLF (`\r`, `\n`) e injeções maliciosas.
-- **Proteção de Credenciais**: Mascaramento automático de senhas (`******`) em todos os logs gerados na tela.
-- **Trituração Segura de Temporários**: Arquivos CSV de credenciais gerados para o SIPp são sobrescritos com zeros binários antes de serem removidos do disco.
-- **Execução Segura**: Chamadas de subprocessos utilizam listas de argumentos sanitizadas sem uso de `shell=True`.
+O projeto adota o padrão ouro de isolamento de credenciais e sanitização contínua:
+
+1. **Isolamento de Credenciais via `.env` (Zero Leaks)**:
+   - Senhas e credenciais confidenciais são mantidas exclusivamente no arquivo local `.env` (bloqueado pelo `.gitignore`).
+   - O arquivo `config.json` armazena apenas preferências de discagem, pesos e tempos, mantendo a chave `"senha": ""` sempre vazia para evitar vazamentos acidentais em commits do Git.
+   - O repositório disponibiliza o `.env.example` para que novos ambientes possam ser configurados rapidamente:
+     ```powershell
+     copy .env.example .env
+     ```
+2. **Prevenção contra Injeção de Cabeçalho SIP**:
+   - Validação estrita pela classe `SecurityValidator` (`core/security.py`) contra quebras de linha CRLF (`\r`, `\n`) e injeções de comandos nos campos de Host, Porta e Ramal.
+3. **Mascaramento Automático em Logs**:
+   - Todas as senhas e parâmetros `-ap` são mascarados com `******` nas saídas do console em tempo real.
+4. **Trituração Segura de Temporários**:
+   - Arquivos CSV de credenciais gerados temporariamente para o SIPp são sobrescritos com zeros binários antes de serem excluídos do disco.
+5. **Execução Segura de Subprocessos**:
+   - Chamadas ao processo do SIPp utilizam estritamente listas de argumentos sanitizadas, sem `shell=True`.
 
 ---
 
