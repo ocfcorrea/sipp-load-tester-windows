@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<!DOCTYPE scenario SYSTEM "sipp.dtd">
+
+<!-- ============================================================
+     register.xml
+     Registra o ramal (AOR) no Asterisk usando autenticacao digest.
+     Asterisk (chan_pjsip) normalmente desafia com 401.
+     Rode este cenario UMA vez (-m 1) antes de disparar as chamadas.
+     O binding fica valido por [expires] segundos (aqui 3600 = 1h).
+     ============================================================ -->
+
+<scenario name="REGISTER ramal">
+
+  <!-- Declara so o que este cenario usa. O SIPp aborta nos dois sentidos:
+       -set de variavel nao declarada, e variavel declarada sem uso.
+       'pass' nao entra: as credenciais do digest vem de -au/-ap, porque
+       [authentication username=... password=...] com keywords aninhadas
+       corrompe o buffer do SIPp (username saia como ".X"). -->
+  <Global variables="domain,user"/>
+
+  <!-- 1) Primeiro REGISTER (sem credenciais) -->
+  <send retrans="500">
+    <![CDATA[
+
+      REGISTER sip:[$domain] SIP/2.0
+      Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
+      Max-Forwards: 70
+      From: "[$user]" <sip:[$user]@[$domain]>;tag=[call_number]
+      To: <sip:[$user]@[$domain]>
+      Call-ID: [call_id]
+      CSeq: 1 REGISTER
+      Contact: <sip:[$user]@[local_ip]:[local_port];transport=[transport]>
+      Expires: 3600
+      User-Agent: SIPp-L5-Test
+      Content-Length: 0
+
+    ]]>
+  </send>
+
+  <!-- 2) Desafio de autenticacao (407 opcional; 401 e o padrao no Asterisk) -->
+  <recv response="407" auth="true" optional="true"/>
+  <recv response="401" auth="true"/>
+
+  <!-- 3) REGISTER com credenciais -->
+  <send retrans="500">
+    <![CDATA[
+
+      REGISTER sip:[$domain] SIP/2.0
+      Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
+      Max-Forwards: 70
+      From: "[$user]" <sip:[$user]@[$domain]>;tag=[call_number]
+      To: <sip:[$user]@[$domain]>
+      Call-ID: [call_id]
+      CSeq: 2 REGISTER
+      Contact: <sip:[$user]@[local_ip]:[local_port];transport=[transport]>
+      [authentication]
+      Expires: 3600
+      User-Agent: SIPp-L5-Test
+      Content-Length: 0
+
+    ]]>
+  </send>
+
+  <!-- 4) Registro aceito -->
+  <recv response="200" rtd="true"/>
+
+  <!-- estatisticas de resposta -->
+  <ResponseTimeRepartition value="10, 20, 30, 40, 50, 100, 150, 200"/>
+
+</scenario>

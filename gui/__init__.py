@@ -1,0 +1,1 @@
+"""Pacote GUI da aplicação."""

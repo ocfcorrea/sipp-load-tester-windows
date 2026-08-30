@@ -1,0 +1,86 @@
+{
+    "asterisk_ip": "192.168.68.205",
+    "asterisk_port": "5060",
+    "transport": "u1",
+    "sip_domain": "192.168.68.205",
+    "ramal": "108$1002",
+    "senha": "<*L5-Callbox*>",
+    "local_ip": "",
+    "sipp_path": "sipp.exe",
+    "simultaneas": 100,
+    "total": 0,
+    "rate": 50,
+    "rate_period": 1000,
+    "duracao_min_ms": 10000,
+    "duracao_max_ms": 60000,
+    "duracao_fixa": false,
+    "pcap_ms": 7000,
+    "dial_mode": "rate",
+    "human_min_interval_ms": 200,
+    "human_max_interval_ms": 1500,
+    "human_burst_chance": 15,
+    "human_token_prefix": "L5_AGENT_",
+    "single_call_dest": "22221864",
+    "destinations": [
+        {
+            "enabled": true,
+            "number": "22221864",
+            "description": "URA Principal",
+            "weight": 50
+        },
+        {
+            "enabled": true,
+            "number": "9999",
+            "description": "Echo Test",
+            "weight": 30
+        },
+        {
+            "enabled": true,
+            "number": "1001",
+            "description": "Fila Atendimento",
+            "weight": 20
+        },
+        {
+            "enabled": false,
+            "number": "",
+            "description": "",
+            "weight": 10
+        },
+        {
+            "enabled": false,
+            "number": "",
+            "description": "",
+            "weight": 10
+        },
+        {
+            "enabled": false,
+            "number": "",
+            "description": "",
+            "weight": 10
+        },
+        {
+            "enabled": false,
+            "number": "",
+            "description": "",
+            "weight": 10
+        },
+        {
+            "enabled": false,
+            "number": "",
+            "description": "",
+            "weight": 10
+        },
+        {
+            "enabled": false,
+            "number": "",
+            "description": "",
+            "weight": 10
+        },
+        {
+            "enabled": false,
+            "number": "",
+            "description": "",
+            "weight": 10
+        }
+    ]
+}

@@ -1,0 +1,123 @@
+Fix:Added default for -mi option
+Fix: ontimeout label must be copied into a persistent buffer.
+Fix: Increase size of media port from 6 to 7 to support 5 digit media ports.
+Enh: Cleanup clock_tick usage.
+Fix: Require src and dest on 3pcc extended commands (fixes core dump).  Also respect optional parameter for recvCmd.
+Enh: Factor out some code that is redundant with xp_get_string.
+Enh: Move call opening into a separate task.
+Enh: Allow lines in an injection file to be inserted and replaced.
+Enh: Split toolmode into a creationMode (whether or not to create calls), sendMode  (for addressing) and a thirdPartyMode.
+Enh: Action to set the remote address for this call.
+Enh: Separate screen updates and statistics reporting into a separate task.
+Enh: Add -set option that allows you to change global variables (similar to -key).
+Enh: Add condexec XML attribute that executes an element only if a particular variable is set.
+Enh: Add statistics column for warnings and errors.
+Fix: Remove two unused and confusing variables which had the same name as class variables.
+Fix: Do not free empty sockets.
+Enh: Clean up some scenario parsing.
+Enh: Clean up some action/scenario parsing.
+Enh: Create a vector of initialization messages (restricted to nops and labels) for each scenario.
+Enh: Cleanup some run relatd things to take message pointers instead of indexes.
+Enh: Run scenario initialization on startup.
+Fix: Remove unecessary debug.
+Fix: Initialize condexec and correct a bug in allocVariableTable::getName.
+Enh: Function to dump list of variable names.
+Enh: Create <Reference> XML element that references an already allocated variable.
+Fix: xp_parser could not handle < inside of a quote.
+Fix: supress crlf for blank variables
+Fix: Incorrect check of status code stopped some retransmissions.
+Enh: Allow retransmissions to be checked using only from, to, and cseq headers.
+Enh: Infrastructure for tracing messages and execution of abortedCalls.
+Enh: Insert tracing print statements for -trace_calldebug.
+Fix: Do not return true for a test on a double that is zero.
+Fix: Remove extraneous print statement.
+Enh: SIPp Version Keyword.
+Enh: Allow conditional execution to be inverted with condexec_invert attribute.\
+Fix: Correct overrun in scenario parsing.
+Enh: Assert to verify timing wheel base is never in the future.
+Enh: Match Acks to the transactions that they are acknowledging using ack_txn attribute.
+Enh: Add a watchdog task to the SIPp scheduler, so that if we miss deadlines under load we are aware of it and can stop the test.
+Enh: More efficient -trace_calldebug handling.
+Fix: free/delete matching and get rid of unneeded NULL sets.
+Fix: Cleanup various things that gcc doesn't like with -Wall -Werror.
+Fix: Change s_host variable name to str_host for Solaris.
+Fix: Index should have been msg_index .
+Fix: Use  $(MAKE) instead of make, provided by Alfred Perlstein.
+Fix: Compile without warnings, fixes lots of printf format errors.
+Fix: Don't require full path name for file= in field parameter.
+Enh: Allow counters to have arbitrary names and remove the limit of 5.
+Fix: Use bool options instead of integers where appropriate (From M.H. VanLeeuwen)
+Fix: Solaris compilation fix (From M.H. VanLeeuwen)
+Fix: Solarisism so that file descriptors < 256 are reserved for  (From M.H. VanLeeuwen)
+Fix: Valgrind complaint about uninitialized jump/copy  (From M.H. VanLeeuwen)
+Fix: Fixes for pollset_process to avoid missing read_errors and overflow the sockets array on errors  (From M.H. VanLeeuwen)
+Fix: Correct occasional core dump.
+Enh: Allow arbitrary number of Response Time Durations with text names.
+Fix: Valgrind fix by Roland Meub.
+Fix: Prevent iterator invalidation on socket reset (provided by Roland Meub)
+Fix: Valgrind detected bug fixes.  Provided by Roland Meub.
+Fix: revised pollset_process fix by M.H. Van Leeuwen.
+Fix: Remove erroneous assert by M.H. Van Leeuwen.
+Fix: fix memory leak for looping scenarios by M.H. Van Leeuwen.
+Fix: Use RTD name in -trace_rtt file.
+Enh: [file name=x] keyword allows inserting a file into a message.
+Fix: Third party mode checks must go before creationMode check when creating new incoming calls.
+Fix: Sending should reference send mode and forgot to add to dest for file inputs.
+Fix: Handle zero length regexp matches more gracefully.
+Enh: -sleep option pauses startup for a while after backgrounding SIPp.
+Fix: Do not create multiple RSA sockets when using -t u1.
+Fix: We should not associate call_remote_socket.
+Fix: Don't get try to output count files if it is not intialized.
+Fix: If a call was created without a source (e.g., via 3pcc), allow the source to be set on the first incoming SIP message.
+Fix: auth-int should not include crlfs in the body hash.
+Enh: Allow regular expression matches on the body of the message.
+Fix: r524 messed up content-length calculations, correct it.
+Fix: Factor out optional message checking into function and check nops.
+Fix: Correctly handle newline at end of CDATA from Michael Stovenour.
+Fix: Resolve some signedness issues.
+Enh: Allow regular expressions to be matched against variables with search_in='var'.
+Enh: Allow setdest to reconnect a TCP socket.
+Enh: Allow setdest and max_allowed_socket to both take effect (you can't reuse a socket once setdest has been called on it).
+Fix: If we are in server mode, we should also allow TCP reconnections.
+Fix: Create the socket before reconnecting it for TCP setdest actions.
+Enh: Allow log files to be used in scenario initialization. (From Andy Aicken).
+Enh: Allow sending of NUL characters inside of literals (Provided by Andy Aicken).
+Enh: Add debug_pcap target.
+Enh: -timeout_error flag will immediately terminate SIPp with a fatal error if the global timeout (-timeout) is reached.
+Fix: Do not try to allocate a zero length literal.
+Fix: Correct error messages with 3pcc non-extended mode.
+Fix: Correct problems with NUL message handling corrupting authenticated messages.
+Enh: Add abstraction for the various log files.
+Enh: Options for log file names and whether to overwrite them.
+Fix: Decrement pending_messages when a socket is invalidated (provided by Martin H. VanLeeuwen.
+Fix: add the support of dynamic_id, a wrapping, auto incrementing, global variable provided by Francois Draperi
+Fix: Prevent access to sockets[] element that may be null by ensuring the read_index is always less than the number of file descriptors.  From Martin H. VanLeeuwen
+Fix: Do not falsely report CPU congestion.  From Martin H. VanLeeuwen
+Fix: Restore -rsa behavior for server mode.  From Martin H. VanLeeuwen
+Enh: Allow sipp to load dynamic library plugins at startup.
+Enh: Allow plugins to register new keywords.  Simple example includes the output of fortune in a message.
+Enh: closecon action closes a call's TCP/TLS connection.
+Enh: Command to reset cumulative statistics.
+Fix: Correct bug in which UAS would not respect -m.
+Fix: getLastReceived should be public.
+Fix: Added missing break to option processing switch.
+Fix: Enter congestion after buffering a write (From Martin H. VanLeeuwen).
+Fix: Correct recieved tag in short message log (From Michael Hirschbichler)
+Fix: Correct double-free of call_remote_socket.
+Fix: Correct type of reset_close. Provided by M.H. VanLeeuwen.
+Fix: enter_congestion is already called by flush_socket.
+Fix: Get rid of call_sockets variable in favor of just referencing pollnfds. (From M.H. VanLeeuwen)
+Fix: Include limits.h in sipp.hpp.
+Enh: Allow strcmp and test to compare two variables.
+Fix: Allow proper spelling of occurrence.
+Fix: Correct memory corruption reported by Artur Silveira da Cunha.
+Fix: Correct lost 3PCC message.  From leonid@huawei.com.
+Enh: add the attribute check_it_inverse to the ereg action, provided by Mikael Rudholm
+Fix: The current wrap function is not able to handle words longer than the, provided by Mikael Rudholm
+Fix: Removing .xml from logs and stats files, provided by Mikael Rudholm
+Enh: Providing a different exit code (-2) for sipp bind error, provided by Mikael Rudholm
+Fix: Media thread was left running after call ends.- Provided by Nic Bellamy.
+Fix:For IPV6, command line param was ignored, and corrrections for PCAP play - Provider , Mitko-mitev.
+FIX: Fix for Segmentation Fault - ID: 2896585: -aa option causes segfault from Endre Szalai
+ENH: Added option to configure global T2 Timer (Patch contributed by sipp@hirschbichler.biz) 
+FIX: sipp crashes when the line is too large. BugID-2968740(Patch contributed by Mitko-Mitev)

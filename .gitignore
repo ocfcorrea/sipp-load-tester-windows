@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+env/
+venv/
+ENV/
+
+# SIPp Temporaries & Logs
+*.log
+*_errors.log
+*_messages.log
+*_screens.log
+*_calldebug.log
+*_rtt.csv
+stats.csv
+credenciais.csv
+credenciais_reg.csv
+single_credenciais.csv
+single_call.xml
+
+# IDE & OS
+.vscode/
+.idea/
+*.swp
+*.swo
+Thumbs.db
+Desktop.ini
