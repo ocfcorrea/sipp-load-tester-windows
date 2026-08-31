@@ -6,23 +6,34 @@ O aplicativo conta com uma interface gráfica moderna baseada no **Shadcn Luna D
 
 ---
 
+## 📋 Requisitos de Sistema & Pré-requisitos
+
+- **Sistema Operacional**: Windows 10, Windows 11 ou Windows Server (64-bit).
+- **Python**: **Python 3.9 ou superior** (Testado e homologado em **Python 3.10, 3.11, 3.12 e 3.13**).
+  > **Nota**: Ao instalar o Python no Windows, certifique-se de marcar a opção **"Add Python to PATH"**.
+- **Binários SIPp**: O repositório já inclui os binários portáteis e bibliotecas Cygwin necessárias em `bin/sipp/`.
+- **Áudio RTP**: Arquivos PCAP de áudio pré-configurados em `pcap/g711a.pcap`.
+
+---
+
 ## 📸 Recursos Principais
 
 - **100% Compatível com Windows**: Binário `sipp.exe` para Windows e bibliotecas de suporte Cygwin integradas na pasta `bin/sipp/` — sem necessidade de compilação ou instalações externas complexas.
-- **Interface Gráfica Moderna (CustomTkinter)**: Estética limpa e minimalista inspirada no tema Shadcn Luna, com suporte a DPI awareness no Windows.
+- **Gerenciador Central de Caminhos (`core/paths.py`)**: Resolução de caminhos dinâmicos absolutos baseados na raiz do projeto, garantindo funcionamento impecável independente de onde o terminal foi aberto.
+- **Interface Gráfica Moderna (CustomTkinter)**: Estética limpa e minimalista inspirada no tema Shadcn Luna, com suporte a DPI awareness no Windows e fontes nativas (`Segoe UI`, `Consolas`).
 - **Registro SIP com LED em Tempo Real**: Teste de registro Digest (401/407) com indicador LED colorido (Verde 200 OK com tempo de resposta em segundos, Amarelo em verificação, Vermelho em caso de falha/timeout).
 - **Separação de Ramal e Usuário de Autenticação**: Permite cenários em que o Ramal/Caller ID (`[$user]`) difere do Usuário de Autenticação Digest (`-au`).
 - **Configurações Avançadas de Rede**: Suporte a Porta Local SIP (`-p`), Porta Base de Mídia RTP (`-mp`) e Seletor dinâmico de Arquivos de Áudio PCAP (`play_pcap_audio`).
 - **Estratégias de Discagem & Simulação Humana**:
-  - Regime Constante: Mantém patamar de N chamadas ativas contínuas (`-l`).
-  - Taxa de Reposição: Controle de novas chamadas por período (`-r` e `-rp`).
-  - Simulação Humana / Tráfego Orgânico: Jitter aleatório entre discagens, chance de picos (burst %) e tokens de sessão dinâmicos.
-  - Tabela Ponderada de Destinos: Configure de 1 até 10 números com pesos relativos (1-100) e cálculo percentual automático em tempo real.
+  - **Regime Constante**: Mantém patamar de N chamadas ativas contínuas (`-l`).
+  - **Taxa de Reposição**: Controle de novas chamadas por período (`-r` e `-rp`).
+  - **Simulação Humana / Tráfego Orgânico**: Jitter aleatório entre discagens, chance de picos (burst %) e tokens de sessão dinâmicos.
+  - **Tabela Ponderada de Destinos**: Configure de 1 até 10 números com pesos relativos (1-100) e cálculo percentual automático em tempo real.
 - **Console & Métricas ao Vivo**:
   - 5 Cartões de métricas (Simultâneas Ativas, Total Disparadas, Sucesso 200 OK, Falhas, CPS).
   - Terminal de logs com exportação e cópia.
   - Controles de Pausa (`'p'`), Parada Suave (`'q'`) e Encerramento de Emergência (Kill).
-- **Camada de Segurança**: Sanitização estrita contra SIP/Command Injection, mascaramento de senhas em logs e trituração/deleção segura de credenciais temporárias.
+- **Camada de Segurança (Zero Leaks)**: Sanitização estrita contra SIP/Command Injection, mascaramento de senhas em logs, proteção por `.env` e trituração/deleção segura de credenciais temporárias.
 
 ---
 
@@ -31,14 +42,15 @@ O aplicativo conta com uma interface gráfica moderna baseada no **Shadcn Luna D
 ```
 Chamadas_Externa_Simultaneas_SIPp/
 ├── app.py                      # Ponto de entrada principal da aplicação GUI
-├── iniciar_app.bat             # Inicializador rápido de 1 clique para Windows
-├── requirements.txt            # Dependências Python fixadas
+├── iniciar_app.bat             # Inicializador inteligente com auto-setup do .venv
+├── instalar_dependencias.bat   # Script dedicado para instalação/reparo de dependências
+├── requirements.txt            # Dependências Python com faixas compatíveis (Python 3.9+)
 ├── config.json                 # Configurações salvas da UI (sanitizado, Zero Leak)
 ├── .env                        # Credenciais e segredos locais (ignorado no git)
-├── .env.example                # Modelo de variáveis de ambiente para versionamento
-├── .gitignore                  # Higiene de repositório e proteção de arquivos temporários
+├── .env.example                # Modelo de variáveis de ambiente com documentação
+├── .gitignore                  # Higiene de repositório e proteção de credenciais
 ├── README.md                   # Documentação completa do projeto
-├── run.sh                      # Script utilitário em Bash (compatível com WSL/Git Bash)
+├── run.sh                      # Script utilitário em Bash com leitura dinâmica de .env
 │
 ├── bin/                        # Binários e bibliotecas de execução
 │   └── sipp/                   # SIPp nativo para Windows (sipp.exe + DLLs Cygwin)
@@ -53,12 +65,13 @@ Chamadas_Externa_Simultaneas_SIPp/
 │   └── dtmf_2833_*.pcap        # Tons DTMF RFC 2833 (0-9, *, #)
 │
 ├── core/                       # Regras de negócio e motor backend
-│   ├── config_manager.py       # Gerenciamento de configurações e perfis
+│   ├── paths.py                # Gerenciador centralizado de caminhos e ambiente de DLLs
+│   ├── config_manager.py       # Gerenciamento de configurações e perfis com suporte .env
 │   ├── scenario_builder.py     # Construtor dinâmico de cenários XML e CSVs
 │   ├── strategy_manager.py     # Distribuição ponderada e simulação humana
 │   ├── security.py             # Validações de segurança, sanitização e mascaramento
 │   ├── sipp_engine.py          # Orquestração assíncrona de subprocessos do SIPp
-│   └── sipp_downloader.py      # Localizador inteligente do bin/sipp/sipp.exe
+│   └── sipp_downloader.py      # Localizador inteligente do sipp.exe e checagem de versão
 │
 ├── gui/                        # Interface gráfica Desktop (CustomTkinter)
 │   ├── main_window.py          # Janela principal e coordenação de abas
@@ -70,27 +83,60 @@ Chamadas_Externa_Simultaneas_SIPp/
 │
 ├── docs/                       # Documentação adicional (PDFs)
 └── tests/                      # Suíte de testes automatizados do backend
+    └── test_backend.py         # Testes de integração de caminhos, isolamento e cenários
 ```
 
 ---
 
-## 🚀 Como Iniciar no Windows
+## 🚀 Como Iniciar em uma Nova Máquina Windows
+
+Ao clonar o repositório em uma nova máquina, você pode iniciar de 3 formas:
 
 ### Opção 1: Inicialização em 1 Clique (Recomendado)
 Dê um duplo clique no arquivo:
 - **`iniciar_app.bat`**
 
-O script detecta automaticamente o ambiente virtual Python (`.venv`), instala as dependências se necessário e abre a interface gráfica.
+O script:
+1. Detecta se o ambiente virtual (`.venv`) existe; se não existir, cria-o automaticamente via `python -m venv .venv`.
+2. Verifica se as bibliotecas (`customtkinter`, `pillow`, `dotenv`, etc.) estão instaladas; se necessário, instala-as via `pip install -r requirements.txt`.
+3. Garante que o arquivo `.env` exista (copiando `.env.example` caso seja o primeiro clone).
+4. Abre a interface gráfica com DPI awareness ajustado.
 
-### Opção 2: Pelo Terminal do Windows (PowerShell / Prompt de Comando)
+---
+
+### Opção 2: Instalação / Reparo Manual de Dependências
+Caso queira preparar o ambiente previamente:
+1. Dê um duplo clique no arquivo **`instalar_dependencias.bat`**
+2. Em seguida, inicie o app com **`iniciar_app.bat`**
+
+---
+
+### Opção 3: Pelo Terminal do Windows (PowerShell / CMD)
 ```powershell
-# Ativar o ambiente virtual e executar
-.\.venv\Scripts\python.exe app.py
+# 1. Clonar o repositório
+git clone <URL_DO_REPOSITORIO>
+cd Chamadas_Externa_Simultaneas_SIPp
+
+# 2. Criar e ativar o ambiente virtual
+python -m venv .venv
+.\.venv\Scripts\activate
+
+# 3. Instalar as dependências
+pip install -r requirements.txt
+
+# 4. Criar o arquivo de credenciais local
+Copy-Item .env.example .env
+
+# 5. Executar a aplicação
+python app.py
 ```
 
-### Opção 3: Executar a Suíte de Testes Automatizados
+---
+
+### Opção 4: Executar a Suíte de Testes Automatizados
+Para validar se todos os módulos, caminhos e regras de segurança estão 100% operacionais:
 ```powershell
-.\.venv\Scripts\python.exe tests\test_backend.py
+python tests/test_backend.py
 ```
 
 ---
@@ -103,9 +149,10 @@ O script detecta automaticamente o ambiente virtual Python (`.venv`), instala as
 │        (SIPp Load Tester Pro GUI)       │                │                                         │
 │                                         │                │                                         │
 │  ┌───────────────────────────────────┐  │                │  ┌───────────────────────────────────┐  │
-│  │ Core Engine (Python 3.12)         │  │                │  │ PJSIP / SIP Core Engine           │  │
+│  │ Core Engine (Python 3.9 - 3.13)   │  │                │  │ PJSIP / SIP Core Engine           │  │
 │  │ - Config & Strategy Manager       │  │                │  │ - Endpoint Registry (AOR)         │  │
 │  │ - Security & Masking Layer        │  │                │  │ - Digest Authentication (401/407) │  │
+│  │ - Centralized Paths (core/paths)  │  │                │  │ - RTP Media Handler               │  │
 │  └─────────────────┬─────────────────┘  │                │  └─────────────────▲─────────────────┘  │
 │                    │                    │                │                    │                    │
 │  ┌─────────────────▼─────────────────┐  │  SIP (UDP/TCP) │  ┌─────────────────┴─────────────────┐  │
@@ -122,10 +169,18 @@ O script detecta automaticamente o ambiente virtual Python (`.venv`), instala as
 
 ---
 
+## ⚙️ Detalhes dos Binários SIPp & DLLs Cygwin no Windows
+
+O projeto acompanha um binário `sipp.exe` compilado com a camada de emulação Cygwin na pasta `bin/sipp/`.
+- **Resolução Automática de DLLs**: O módulo [`core/paths.py`](file:///e:/00%20-%20DEV/Chamadas_Externa_Simultaneas_SIPp/core/paths.py) injeta dinamicamente o diretório `bin/sipp` na variável de ambiente `PATH` durante a execução de subprocessos, garantindo que o Windows sempre localize as DLLs `cygwin1.dll`, `cygssl-0.9.8.dll`, `cygcrypto-0.9.8.dll` e `cygncurses-10.dll` sem necessidade de alterar as variáveis de ambiente globais do sistema.
+- **Detecção de SIPp do Sistema**: A classe [`SippLocator`](file:///e:/00%20-%20DEV/Chamadas_Externa_Simultaneas_SIPp/core/sipp_downloader.py) também suporta automaticamente binários modernos do SIPp instalados via Chocolatey (`choco install sipp`), Cygwin 64-bit (`C:\cygwin64\bin\sipp.exe`), `C:\Program Files\SIPp\sipp.exe` ou WSL2 (`wsl sipp`).
+
+---
+
 ## 📖 Guia de Uso das 4 Abas
 
 ### 🔐 Aba 1: Registro & Conexão SIP
-- **Alvo Asterisk IP / FQDN**: Endereço de destino na rede (ex: `192.168.68.205`).
+- **Alvo Asterisk IP / FQDN**: Endereço de destino na rede (ex: `192.168.1.100`).
 - **Porta SIP**: Porta do servidor (padrão `5060`).
 - **Transporte**: Selecione `u1 (UDP)` ou `t1 (TCP)`.
 - **Domínio SIP**: Domínio da identidade SIP que aparece nos cabeçalhos `From`, `To` e Request-URI.
@@ -168,32 +223,6 @@ O script detecta automaticamente o ambiente virtual Python (`.venv`), instala as
 
 ### 📖 Aba 4: Sobre & Topologia
 - Visualização completa da topologia de rede, diagrama de sequência SIP detalhado, boas práticas para Asterisk e especificações técnicas da versão.
-
----
-
-## 🛠️ Cuidados e Boas Práticas no Asterisk
-
-1. **Limite de Chamadas por Endpoint (`pjsip.conf`)**:
-   Para permitir que um único ramal gere 50, 100 ou mais chamadas simultâneas, desative a trava de device state no Asterisk:
-   ```ini
-   [1002]
-   type=endpoint
-   device_state_busy_at=0        ; 0 = sem limite de chamadas simultâneas
-   max_contacts=100
-   qualify_frequency=0           ; desabilita qualify OPTIONS durante o teste de carga
-   allow=!all,alaw,ulaw
-   ```
-
-2. **Destino que Atende e Sustenta Mídia (`extensions.conf`)**:
-   O número discado deve atender e manter o canal aberto para sustentar o fluxo RTP:
-   ```asterisk
-   exten => 9999,1,Answer()
-    same => n,Echo()             ; devolve o áudio RTP nos dois sentidos
-    same => n,Hangup()
-   ```
-
-3. **Faixa de Portas RTP (`rtp.conf`)**:
-   Para suportar 100 chamadas simultâneas, configure um range de no mínimo 200 portas RTP no Asterisk (ex: `10000` a `20000`).
 
 ---
 

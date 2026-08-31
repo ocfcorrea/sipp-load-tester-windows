@@ -9,11 +9,15 @@ import urllib.request
 import zipfile
 from typing import Tuple, Optional
 
+from core.paths import SIPP_DIR, DEFAULT_SIPP_EXE, BASE_DIR, get_subprocess_env
+
 
 class SippLocator:
     """Detecta a presença do executável SIPp e gerencia o ambiente de execução."""
 
     COMMON_WINDOWS_PATHS = [
+        DEFAULT_SIPP_EXE,
+        os.path.join(BASE_DIR, "bin", "sipp", "sipp.exe"),
         "bin/sipp/sipp.exe",
         "bin\\sipp\\sipp.exe",
         "sipp.exe",
@@ -29,18 +33,23 @@ class SippLocator:
     def find_sipp(configured_path: str = "") -> Optional[str]:
         """Procura o executável SIPp no caminho configurado, diretório local ou PATH."""
         # 1. Tenta o caminho configurado
-        if configured_path and os.path.exists(configured_path):
-            return configured_path
-        
         if configured_path:
+            norm = os.path.normpath(configured_path)
+            if os.path.exists(norm):
+                return os.path.abspath(norm)
+            
+            abs_from_base = os.path.normpath(os.path.join(BASE_DIR, configured_path))
+            if os.path.exists(abs_from_base):
+                return abs_from_base
+
             which_res = shutil.which(configured_path)
             if which_res:
                 return which_res
 
         # 2. Tenta os caminhos comuns
         for path in SippLocator.COMMON_WINDOWS_PATHS:
-            if os.path.exists(path):
-                return path
+            if path and os.path.exists(path):
+                return os.path.abspath(path)
             which_res = shutil.which(path)
             if which_res:
                 return which_res
@@ -60,12 +69,18 @@ class SippLocator:
             return False, "Caminho do executável SIPp não informado."
             
         try:
-            # Em Windows, se for arquivo Linux ELF, pode falhar se não executado no WSL
+            # Prepara ambiente com PATH ajustado para DLLs Cygwin
+            env = get_subprocess_env()
+            bin_dir = os.path.dirname(os.path.abspath(binary_path))
+            if bin_dir not in env.get("PATH", ""):
+                env["PATH"] = bin_dir + os.pathsep + env.get("PATH", "")
+
             result = subprocess.run(
                 [binary_path, "-v"],
                 capture_output=True,
                 text=True,
                 timeout=5,
+                env=env,
                 creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
             )
             output = (result.stdout + "\n" + result.stderr).strip()
@@ -89,7 +104,6 @@ class SippLocator:
         Auxilia no download/configuração do SIPp para Windows.
         """
         os.makedirs(dest_dir, exist_ok=True)
-        # URL oficial do repositório / build
         url = "https://downloads.sourceforge.net/project/sipp/sipp/3.2/sipp-win32-3.2-setup.exe"
         installer_path = os.path.join(dest_dir, "sipp-installer.exe")
         
@@ -97,7 +111,6 @@ class SippLocator:
             if progress_callback:
                 progress_callback("Baixando instalador do SIPp para Windows...", 0.1)
 
-            # Usa curl do Windows ou urllib com User-Agent
             curl_bin = shutil.which("curl.exe") or shutil.which("curl")
             if curl_bin:
                 cmd = [curl_bin, "-L", "-o", installer_path, url]
@@ -110,7 +123,6 @@ class SippLocator:
             if progress_callback:
                 progress_callback("Download concluído. Executando instalador...", 0.7)
 
-            # Executa instalador
             return True, f"Instalador baixado com sucesso em '{installer_path}'. Execute-o para instalar o SIPp no Windows."
         except Exception as e:
             return False, f"Falha ao baixar SIPp: {e}"

@@ -5,6 +5,7 @@ Substitui variáveis de template e gera arquivos de credenciais compatíveis.
 
 import os
 from typing import List, Tuple
+from core.paths import resolve_scenario, resolve_pcap, SCENARIOS_DIR, PCAP_DIR, BASE_DIR
 
 
 class ScenarioBuilder:
@@ -13,15 +14,7 @@ class ScenarioBuilder:
     @staticmethod
     def resolve_scenario_path(filename: str) -> str:
         """Resolve o caminho do arquivo procurando na pasta scenarios/ ou raiz."""
-        candidates = [
-            os.path.join("scenarios", filename),
-            filename,
-            os.path.join(os.path.dirname(os.path.dirname(__file__)), "scenarios", filename),
-        ]
-        for c in candidates:
-            if os.path.exists(c):
-                return c
-        return os.path.join("scenarios", filename)
+        return resolve_scenario(filename)
 
     @staticmethod
     def generate_call_xml(
@@ -50,6 +43,7 @@ class ScenarioBuilder:
             if min_ms > max_ms:
                 min_ms, max_ms = max_ms, min_ms
 
+            # Normaliza o caminho do PCAP relativo/absoluto com barras normais (SIPp espera barras '/')
             pcap_clean = pcap_file.replace("\\", "/").strip() if pcap_file else "pcap/g711a.pcap"
 
             content = content.replace("@@DURACAO_MIN_MS@@", str(min_ms))

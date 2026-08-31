@@ -7,16 +7,63 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from core.paths import (
+    BASE_DIR,
+    CORE_DIR,
+    GUI_DIR,
+    BIN_DIR,
+    SIPP_DIR,
+    SCENARIOS_DIR,
+    PCAP_DIR,
+    CONFIG_FILE,
+    ENV_FILE,
+    ENV_EXAMPLE_FILE,
+    DEFAULT_SIPP_EXE,
+    get_project_path,
+    resolve_scenario,
+    resolve_pcap,
+    ensure_env_file,
+    get_subprocess_env
+)
 from core.config_manager import ConfigManager, DEFAULT_CONFIG
 from core.strategy_manager import StrategyManager
 from core.scenario_builder import ScenarioBuilder
 from core.sipp_downloader import SippLocator
 from core.sipp_engine import SippEngine
+from core.security import SecurityValidator
+
+
+def test_paths():
+    print("-> Testando core.paths...")
+    assert os.path.exists(BASE_DIR)
+    assert os.path.exists(CORE_DIR)
+    assert os.path.exists(GUI_DIR)
+    assert os.path.exists(SCENARIOS_DIR)
+    assert os.path.exists(PCAP_DIR)
+    assert os.path.exists(ENV_EXAMPLE_FILE)
+
+    resolved_scen = resolve_scenario("register.xml")
+    assert os.path.exists(resolved_scen)
+    assert "register.xml" in resolved_scen
+
+    resolved_pcap_file = resolve_pcap("g711a.pcap")
+    assert os.path.exists(resolved_pcap_file)
+    assert "g711a.pcap" in resolved_pcap_file
+
+    env = get_subprocess_env()
+    assert "PATH" in env
+    if sys.platform == "win32" and os.path.exists(SIPP_DIR):
+        assert SIPP_DIR in env["PATH"]
+
+    print("  [OK] core.paths validado!")
 
 
 def test_config_manager():
     print("-> Testando ConfigManager e isolamento .env...")
-    mgr = ConfigManager("test_config.json", "test.env")
+    test_cfg = get_project_path("test_config.json")
+    test_env = get_project_path("test.env")
+    
+    mgr = ConfigManager(test_cfg, test_env)
     assert mgr.get("asterisk_ip") == DEFAULT_CONFIG["asterisk_ip"]
     assert mgr.get("usuario_auth") == DEFAULT_CONFIG["usuario_auth"]
     assert len(mgr.get("destinations")) == 10
@@ -28,23 +75,23 @@ def test_config_manager():
     
     # 1. Verifica se no arquivo JSON a senha ficou vazia (Zero Leak)
     import json
-    with open("test_config.json", "r", encoding="utf-8") as f:
+    with open(test_cfg, "r", encoding="utf-8") as f:
         saved_json = json.load(f)
     assert saved_json.get("senha") == ""
     assert saved_json.get("simultaneas") == 200
 
     # 2. Verifica se no test.env a senha foi salva corretamente
-    with open("test.env", "r", encoding="utf-8") as f:
+    with open(test_env, "r", encoding="utf-8") as f:
         env_text = f.read()
     assert "SIP_SENHA=SegredoUltra123" in env_text
 
     # 3. Recarrega o ConfigManager e verifica se a senha é recuperada do .env
-    mgr2 = ConfigManager("test_config.json", "test.env")
+    mgr2 = ConfigManager(test_cfg, test_env)
     assert mgr2.get("simultaneas") == 200
     assert mgr2.get("usuario_auth") == "user1002"
     assert mgr2.get("senha") == "SegredoUltra123"
     
-    for f_clean in ["test_config.json", "test.env"]:
+    for f_clean in [test_cfg, test_env]:
         if os.path.exists(f_clean):
             os.remove(f_clean)
     print("  [OK] ConfigManager e isolamento .env validados com sucesso!")
@@ -82,40 +129,40 @@ def test_strategy_manager():
 
 def test_scenario_builder():
     print("-> Testando ScenarioBuilder...")
+    test_call_xml = get_project_path("test_call.xml")
     ok, msg = ScenarioBuilder.generate_call_xml(
         template_path="call.xml.template",
-        output_path="test_call.xml",
+        output_path=test_call_xml,
         duracao_min_ms=15000,
         duracao_max_ms=45000,
         pcap_file="pcap/custom_audio.pcap"
     )
     assert ok is True
-    assert os.path.exists("test_call.xml")
+    assert os.path.exists(test_call_xml)
     
-    with open("test_call.xml", "r", encoding="utf-8") as f:
+    with open(test_call_xml, "r", encoding="utf-8") as f:
         content = f.read()
         assert 'min="15000"' in content
         assert 'max="45000"' in content
         assert 'play_pcap_audio="pcap/custom_audio.pcap"' in content
         assert "@@" not in content
         
-    os.remove("test_call.xml")
+    os.remove(test_call_xml)
     
     # Testa CSV
+    test_cred_csv = get_project_path("test_cred.csv")
     ok_csv, msg_csv = ScenarioBuilder.generate_credentials_csv(
         [("1002", "pass", "22221864"), ("1002", "pass", "9999")],
-        output_path="test_cred.csv"
+        output_path=test_cred_csv
     )
     assert ok_csv is True
-    assert os.path.exists("test_cred.csv")
-    os.remove("test_cred.csv")
+    assert os.path.exists(test_cred_csv)
+    os.remove(test_cred_csv)
     print("  [OK] ScenarioBuilder validado!")
 
 
 def test_security_validator():
     print("-> Testando SecurityValidator...")
-    from core.security import SecurityValidator
-    
     # Host
     ok, _ = SecurityValidator.validate_host("192.168.1.100")
     assert ok is True
@@ -172,6 +219,7 @@ def test_gui_imports():
 
 
 if __name__ == "__main__":
+    test_paths()
     test_config_manager()
     test_strategy_manager()
     test_scenario_builder()

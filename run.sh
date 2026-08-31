@@ -1,77 +1,76 @@
 #!/usr/bin/env bash
 # ============================================================
-#  run.sh - Teste de 100 chamadas simultaneas com SIPp
-#  Alvo: Asterisk | Audio real via RTP (PCAP G.711 a-law)
+#  run.sh - Teste de 100 chamadas simultâneas com SIPp
+#  Alvo: Asterisk | Áudio real via RTP (PCAP G.711 a-law)
 #  L5 Networks
 # ============================================================
 set -euo pipefail
 
-# ------------------------------------------------------------
-# 1) AJUSTE ESTAS VARIAVEIS
-# ------------------------------------------------------------
-ASTERISK_IP="192.168.68.205"      # IP ou FQDN do seu Asterisk (alvo de REDE)
-ASTERISK_PORT="5060"            # Porta SIP (5060 UDP tipico)
-TRANSPORT="u1"                  # u1=UDP  t1=TCP  (passado como: -t u1)
-
-SIP_DOMAIN="192.168.68.205"
-                                # Dominio SIP da IDENTIDADE (From/To/Request-URI).
-                                # Separado do alvo de rede acima de proposito:
-                                # o SIPp resolve ASTERISK_IP para um IP, e usar
-                                # [remote_ip] nos headers quebra o match de
-                                # dominio no registrar. Injetado nos cenarios
-                                # como [$domain] via -set (NAO -key: -key
-                                # alimenta [keyword], -set alimenta [$var]).
-
-RAMAL="108\$1002"               # Ramal (usuario SIP) registrado
-SENHA="<*L5-Callbox*>"          # Senha do ramal
-DESTINO="22221864"              # Numero/ramal de destino que sera chamado
-                                # (ex.: uma URA, um Echo() no dialplan, etc.)
-
-LOCAL_IP=""                     # Deixe vazio p/ autodetectar, ou fixe o IP
-                                # da placa que fala com o Asterisk.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "${SCRIPT_DIR}"
 
 # ------------------------------------------------------------
-# 2) PARAMETROS DO TESTE
+# 1) CARREGAMENTO AUTOMÁTICO DO ARQUIVO .env (SE EXISTIR)
 # ------------------------------------------------------------
-SIMULTANEAS=100                 # Teto de chamadas ativas ao mesmo tempo (-l).
-                                # O SIPp MANTEM esse patamar: assim que uma
-                                # chamada termina, cria outra para repor.
-
-TOTAL=0                         # Total de chamadas a criar (-m).
-                                # 0 = ILIMITADO: roda em regime constante ate
-                                # voce parar (tecla 'q' ou Ctrl+C).
-                                # Qualquer valor > 0 encerra o teste ao
-                                # atingir esse total.
-
-RATE=50                         # Novas chamadas por RATE_PERIOD (-r).
-RATE_PERIOD=1000                # Periodo da taxa em ms (-rp).
-                                # A taxa limita a VELOCIDADE DE REPOSICAO das
-                                # vagas. Se muitas chamadas terminarem juntas,
-                                # um RATE baixo demora para recompor o teto -
-                                # mantenha-o folgado (>= SIMULTANEAS/2 por
-                                # segundo) para o patamar ficar estavel.
-
-# Duracao da chamada APOS atendida: sorteada por chamada (distribuicao
-# uniforme) dentro do range abaixo. Para duracao FIXA, use o mesmo valor
-# nos dois campos.
-DURACAO_MIN_MS=10000            # piso do range (10s)
-DURACAO_MAX_MS=60000            # teto do range (60s)
-
-PCAP_MS=7000                    # Duracao do pcap/g711a.pcap em ms (informativo).
-                                # O audio toca UMA vez no inicio da chamada;
-                                # o resto do tempo o canal fica aberto sem RTP.
-                                # Nao afeta a duracao da chamada.
+if [[ -f ".env" ]]; then
+  echo ">> Carregando configurações do arquivo .env..."
+  # Exporta variáveis do .env ignorando comentários e linhas vazias
+  set -a
+  # shellcheck disable=SC1091
+  source <(grep -E -v '^#|^$' .env)
+  set +a
+elif [[ -f ".env.example" && ! -f ".env" ]]; then
+  echo ">> Arquivo .env não encontrado. Copiando de .env.example..."
+  cp .env.example .env
+fi
 
 # ------------------------------------------------------------
-# 3) DESCOBRE O BINARIO E OS ARGS COMUNS
+# 2) CONFIGURAÇÃO DOS PARÂMETROS SIP (com fallback seguro)
 # ------------------------------------------------------------
-SIPP_BIN="$(command -v sipp || true)"
+ASTERISK_IP="${SIP_ASTERISK_IP:-192.168.1.100}"    # IP ou FQDN do seu Asterisk (alvo de REDE)
+ASTERISK_PORT="${SIP_ASTERISK_PORT:-5060}"        # Porta SIP (5060 UDP típico)
+TRANSPORT="${SIP_TRANSPORT:-u1}"                  # u1=UDP  t1=TCP  (passado como: -t u1)
+
+SIP_DOMAIN="${SIP_DOMAIN:-$ASTERISK_IP}"          # Domínio SIP da IDENTIDADE (From/To/Request-URI)
+RAMAL="${SIP_RAMAL:-1002}"                        # Ramal (usuário SIP) registrado
+AUTH_USER="${SIP_USUARIO_AUTH:-$RAMAL}"           # Usuário de autenticação Digest
+SENHA="${SIP_SENHA:-sua_senha_aqui}"              # Senha do ramal (definida no .env)
+DESTINO="${SIP_DESTINO:-22221864}"                # Número/ramal de destino chamado
+
+LOCAL_IP="${SIP_LOCAL_IP:-}"                      # Interface local (vazio = autodetectar)
+
+# ------------------------------------------------------------
+# 3) PARÂMETROS DO TESTE DE CARGA
+# ------------------------------------------------------------
+SIMULTANEAS=100                 # Teto de chamadas ativas ao mesmo tempo (-l)
+TOTAL=0                         # Total de chamadas a criar (-m) [0 = ilimitado]
+RATE=50                         # Novas chamadas por RATE_PERIOD (-r)
+RATE_PERIOD=1000                # Período da taxa em ms (-rp)
+
+DURACAO_MIN_MS=10000            # Piso do range de duração (10s)
+DURACAO_MAX_MS=60000            # Teto do range de duração (60s)
+PCAP_MS=7000                    # Duração do pcap/g711a.pcap em ms (informativo)
+
+# ------------------------------------------------------------
+# 4) LOCALIZAÇÃO DO BINÁRIO SIPP E ARQUIVOS PCAP
+# ------------------------------------------------------------
+SIPP_BIN=""
+if [[ -f "bin/sipp/sipp.exe" ]]; then
+  SIPP_BIN="bin/sipp/sipp.exe"
+elif command -v sipp >/dev/null 2>&1; then
+  SIPP_BIN="$(command -v sipp)"
+elif [[ -f "/usr/bin/sipp" ]]; then
+  SIPP_BIN="/usr/bin/sipp"
+elif [[ -f "/usr/local/bin/sipp" ]]; then
+  SIPP_BIN="/usr/local/bin/sipp"
+fi
+
 if [[ -z "${SIPP_BIN}" ]]; then
-  echo "ERRO: sipp nao encontrado no PATH. Instale o SIPp (com pcapplay)." >&2
+  echo "ERRO: sipp não encontrado no PATH ou em bin/sipp/sipp.exe. Instale o SIPp." >&2
   exit 1
 fi
 
-# Descobre onde estao os PCAPs do SIPp caso o relativo "pcap/" nao exista.
+# Garante a existência do arquivo PCAP
 if [[ ! -f "pcap/g711a.pcap" ]]; then
   for d in /usr/share/sip-tester /usr/share/sipp/pcap /usr/share/doc/sipp/pcap ./pcap; do
     if [[ -f "$d/g711a.pcap" ]]; then
@@ -80,13 +79,11 @@ if [[ ! -f "pcap/g711a.pcap" ]]; then
     fi
   done
 fi
+
 if [[ ! -f "pcap/g711a.pcap" ]]; then
-  echo "AVISO: pcap/g711a.pcap nao encontrado. O playback de audio vai falhar." >&2
-  echo "       Copie o g711a.pcap da instalacao do SIPp para ./pcap/" >&2
+  echo "AVISO: pcap/g711a.pcap não encontrado. O playback de áudio RTP pode falhar." >&2
 fi
 
-# Expandido adiante como ${LOCAL_ARG[@]+"${LOCAL_ARG[@]}"}: em bash <= 4.3,
-# "${array[@]}" vazio sob 'set -u' aborta com "unbound variable".
 LOCAL_ARG=()
 if [[ -n "${LOCAL_IP}" ]]; then
   LOCAL_ARG=(-i "${LOCAL_IP}")
@@ -94,8 +91,6 @@ fi
 
 TARGET="${ASTERISK_IP}:${ASTERISK_PORT}"
 
-# TOTAL=0 -> omite o -m, e o SIPp roda indefinidamente mantendo o patamar
-# de SIMULTANEAS. Sem -m nao existe condicao de parada: encerre com 'q'.
 TOTAL_ARG=()
 if [[ "${TOTAL}" -gt 0 ]]; then
   TOTAL_ARG=(-m "${TOTAL}")
@@ -106,16 +101,14 @@ if [[ ${DURACAO_MIN_MS} -gt ${DURACAO_MAX_MS} ]]; then
   exit 1
 fi
 
-# Gera call.xml a partir do template. <pause milliseconds> e <test value> sao
-# lidos no parse do cenario, antes das variaveis [$...] existirem - por isso
-# precisam ser literais, substituidos aqui.
+# Gera call.xml a partir do template
 TEMPLATE="scenarios/call.xml.template"
 if [[ ! -f "${TEMPLATE}" ]]; then
   TEMPLATE="call.xml.template"
 fi
 
 if [[ ! -f "${TEMPLATE}" ]]; then
-  echo "ERRO: call.xml.template nao encontrado em scenarios/ ou raiz." >&2
+  echo "ERRO: call.xml.template não encontrado em scenarios/ ou raiz." >&2
   exit 1
 fi
 
@@ -125,35 +118,42 @@ sed -e "s/@@DURACAO_MIN_MS@@/${DURACAO_MIN_MS}/g" \
     -e "s/@@PCAP_FILE@@/pcap\/g711a.pcap/g" \
     "${TEMPLATE}" > "${CALL_XML}"
 
-# Guard: se sobrou algum placeholder, o cenario esta inconsistente com o script.
 if grep -q '@@' "${CALL_XML}"; then
-  echo "ERRO: placeholder nao substituido em ${CALL_XML}:" >&2
+  echo "ERRO: placeholder não substituído em ${CALL_XML}:" >&2
   grep -n '@@' "${CALL_XML}" >&2
   exit 1
 fi
 
-# CSV de credenciais/destino injetado via [field0]=ramal [field1]=senha [field2]=destino
+# CSV de credenciais/destino (field0=AUTH_USER, field1=SENHA, field2=DESTINO)
 CSV="credenciais.csv"
 cat > "${CSV}" <<EOF
 SEQUENTIAL
-${RAMAL};${SENHA};${DESTINO}
+${AUTH_USER};${SENHA};${DESTINO}
 EOF
+
+# Função de limpeza segura ao sair
+cleanup() {
+  if [[ -f "${CSV}" ]]; then
+    rm -f "${CSV}"
+  fi
+}
+trap cleanup EXIT
 
 echo "=============================================="
 echo " Alvo Asterisk : ${TARGET} (${TRANSPORT})"
-echo " Dominio SIP   : ${SIP_DOMAIN}"
-echo " Ramal         : ${RAMAL}  ->  Destino: ${DESTINO}"
+echo " Domínio SIP   : ${SIP_DOMAIN}"
+echo " Ramal         : ${RAMAL} (Auth: ${AUTH_USER}) -> Destino: ${DESTINO}"
 if [[ "${TOTAL}" -gt 0 ]]; then
   MODO_TXT="Total: ${TOTAL}"
 else
   MODO_TXT="Total: ILIMITADO (pare com 'q')"
 fi
-echo " Simultaneas   : ${SIMULTANEAS} | ${MODO_TXT} | Taxa: ${RATE}/${RATE_PERIOD}ms"
-echo " Duracao/chamada: aleatoria ${DURACAO_MIN_MS}-${DURACAO_MAX_MS}ms (audio nos primeiros $((PCAP_MS / 1000))s)"
+echo " Simultâneas   : ${SIMULTANEAS} | ${MODO_TXT} | Taxa: ${RATE}/${RATE_PERIOD}ms"
+echo " Duração       : ${DURACAO_MIN_MS}-${DURACAO_MAX_MS}ms (áudio PCAP nos primeiros $((PCAP_MS / 1000))s)"
 echo "=============================================="
 
 # ------------------------------------------------------------
-# 4) REGISTRA O RAMAL (uma vez)
+# 5) REGISTRA O RAMAL (Digest 401/407)
 # ------------------------------------------------------------
 echo ">> Registrando o ramal ${RAMAL}..."
 REG_XML="scenarios/register.xml"
@@ -167,26 +167,25 @@ fi
   -t "${TRANSPORT}" \
   -set domain "${SIP_DOMAIN}" \
   -set user "${RAMAL}" \
-  -au "${RAMAL}" \
-  -ap "${SENHA}" \
   -m 1 \
   -r 1 \
   -trace_err \
   ${LOCAL_ARG[@]+"${LOCAL_ARG[@]}"} \
-  || { echo "ERRO no registro. Verifique IP/ramal/senha." >&2; exit 1; }
+  || { echo "ERRO no registro. Verifique IP/ramal/senha no .env." >&2; exit 1; }
 
-echo ">> Ramal registrado. Aguardando 1s..."
+echo ">> Ramal registrado com sucesso. Aguardando 1s..."
 sleep 1
 
 # ------------------------------------------------------------
-# 5) DISPARA AS CHAMADAS COM AUDIO
+# 6) DISPARA AS CHAMADAS DE CARGA
 # ------------------------------------------------------------
 if [[ "${TOTAL}" -gt 0 ]]; then
-  echo ">> Disparando ${TOTAL} chamadas (ate ${SIMULTANEAS} simultaneas)..."
+  echo ">> Disparando ${TOTAL} chamadas (até ${SIMULTANEAS} simultâneas)..."
 else
   echo ">> Regime constante: mantendo ${SIMULTANEAS} chamadas ativas."
-  echo "   Pare com 'q' (saida suave, aguarda chamadas terminarem) ou Ctrl+C."
+  echo "   Pare com 'q' (saída suave) ou Ctrl+C."
 fi
+
 "${SIPP_BIN}" "${TARGET}" \
   -sf "${CALL_XML}" \
   -inf "${CSV}" \
@@ -194,7 +193,6 @@ fi
   -set domain "${SIP_DOMAIN}" \
   -set user "${RAMAL}" \
   -set dest "${DESTINO}" \
-  -au "${RAMAL}" -ap "${SENHA}" \
   ${LOCAL_ARG[@]+"${LOCAL_ARG[@]}"} \
   -l "${SIMULTANEAS}" \
   ${TOTAL_ARG[@]+"${TOTAL_ARG[@]}"} \
@@ -204,12 +202,9 @@ fi
   -fd 1s \
   || RC=$?
 
-# O SIPp sai com codigo != 0 quando houve chamadas falhadas ou quando foi
-# interrompido - ambos esperados aqui. Sem este guard, 'set -e' abortaria o
-# script antes da mensagem final.
 RC=${RC:-0}
 if [[ ${RC} -ne 0 ]]; then
-  echo ">> SIPp encerrou com codigo ${RC} (falhas ou interrupcao)."
+  echo ">> SIPp encerrou com código ${RC} (falhas ou interrupção)."
 fi
 
-echo ">> Teste concluido. Estatisticas em stats.csv (e *_errors.log se houver falhas)."
+echo ">> Teste concluído. Estatísticas em stats.csv (e *_errors.log se houver falhas)."

@@ -8,23 +8,30 @@ import json
 import os
 from typing import Dict, Any, List
 
+from core.paths import (
+    CONFIG_FILE,
+    ENV_FILE,
+    ENV_EXAMPLE_FILE,
+    DEFAULT_SIPP_EXE,
+    DEFAULT_PCAP_FILE,
+    ensure_env_file
+)
+
 try:
     from dotenv import load_dotenv, set_key
     DOTENV_AVAILABLE = True
 except ImportError:
     DOTENV_AVAILABLE = False
 
-CONFIG_FILE = "config.json"
-ENV_FILE = ".env"
 
 DEFAULT_CONFIG: Dict[str, Any] = {
     # Conexão SIP (Aba 1)
-    "asterisk_ip": "192.168.68.205",
+    "asterisk_ip": "192.168.1.100",
     "asterisk_port": "5060",
     "transport": "u1",  # u1 = UDP, t1 = TCP
-    "sip_domain": "192.168.68.205",
-    "ramal": "108$1002",
-    "usuario_auth": "108$1002",
+    "sip_domain": "192.168.1.100",
+    "ramal": "1002",
+    "usuario_auth": "1002",
     "senha": "",  # Protegido no .env por padrão
     "local_ip": "",
     "local_port": "",  # Vazio = porta aleatória / dinâmica
@@ -74,6 +81,11 @@ class ConfigManager:
     def __init__(self, file_path: str = CONFIG_FILE, env_path: str = ENV_FILE):
         self.file_path = file_path
         self.env_path = env_path
+        
+        # Garante criação do .env se for o arquivo padrão
+        if self.env_path == ENV_FILE and not os.path.exists(self.env_path):
+            ensure_env_file()
+            
         self._load_env_file()
         self.config: Dict[str, Any] = self.load_config()
 
@@ -118,6 +130,14 @@ class ConfigManager:
             base_cfg["asterisk_port"] = os.getenv("SIP_ASTERISK_PORT")
         if os.getenv("SIP_DOMAIN"):
             base_cfg["sip_domain"] = os.getenv("SIP_DOMAIN")
+        if os.getenv("SIP_DESTINO"):
+            base_cfg["single_call_dest"] = os.getenv("SIP_DESTINO")
+        if os.getenv("SIP_LOCAL_IP"):
+            base_cfg["local_ip"] = os.getenv("SIP_LOCAL_IP")
+        if os.getenv("SIP_LOCAL_PORT"):
+            base_cfg["local_port"] = os.getenv("SIP_LOCAL_PORT")
+        if os.getenv("SIP_MEDIA_PORT"):
+            base_cfg["media_port"] = os.getenv("SIP_MEDIA_PORT")
 
         # Garante lista de destinos com 10 slots
         dests = base_cfg.get("destinations", [])
@@ -164,6 +184,10 @@ class ConfigManager:
             f"SIP_RAMAL={self.config.get('ramal', '')}\n"
             f"SIP_USUARIO_AUTH={self.config.get('usuario_auth', '')}\n"
             f"SIP_SENHA={self.config.get('senha', '')}\n"
+            f"SIP_DESTINO={self.config.get('single_call_dest', '')}\n"
+            f"SIP_LOCAL_IP={self.config.get('local_ip', '')}\n"
+            f"SIP_LOCAL_PORT={self.config.get('local_port', '')}\n"
+            f"SIP_MEDIA_PORT={self.config.get('media_port', '6000')}\n"
         )
         try:
             with open(self.env_path, "w", encoding="utf-8") as f:

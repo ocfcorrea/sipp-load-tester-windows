@@ -9,6 +9,14 @@ import threading
 import time
 from typing import Callable, Optional, Dict, Any
 
+from core.paths import (
+    BASE_DIR,
+    get_project_path,
+    resolve_scenario,
+    resolve_pcap,
+    get_subprocess_env,
+    DEFAULT_SIPP_EXE
+)
 from core.scenario_builder import ScenarioBuilder
 from core.strategy_manager import StrategyManager
 from core.sipp_downloader import SippLocator
@@ -38,7 +46,7 @@ class SippEngine:
     def get_sipp_binary(self, configured_path: str = "") -> str:
         """Localiza o binário do SIPp ou retorna o configurado."""
         found = SippLocator.find_sipp(configured_path)
-        return found if found else (configured_path if configured_path else os.path.join("bin", "sipp", "sipp.exe"))
+        return found if found else (configured_path if configured_path else DEFAULT_SIPP_EXE)
 
     # -------------------------------------------------------------------------
     # 1. TESTE DE REGISTRO SIP (com retorno para LED)
@@ -87,9 +95,9 @@ class SippEngine:
 
             log_callback(f"[REGISTRO] Testando registro SIP para ramal {ramal} (Auth: {auth_user}) em {target} ({transport})...", "INFO")
 
-            # Cria CSV de credencial temporário
-            csv_path = "credenciais_reg.csv"
-            ScenarioBuilder.generate_credentials_csv([(ramal, senha, "")], output_path=csv_path)
+            # Cria CSV de credencial temporário (field0=auth_user, field1=senha)
+            csv_path = get_project_path("credenciais_reg.csv")
+            ScenarioBuilder.generate_credentials_csv([(auth_user, senha, "")], output_path=csv_path)
 
             reg_xml = ScenarioBuilder.resolve_scenario_path("register.xml")
 
@@ -101,8 +109,6 @@ class SippEngine:
                 "-t", transport,
                 "-set", "domain", domain,
                 "-set", "user", ramal,
-                "-au", auth_user,
-                "-ap", senha,
                 "-m", "1",
                 "-r", "1",
                 "-trace_err"
@@ -129,6 +135,8 @@ class SippEngine:
                     stdin=subprocess.PIPE,
                     text=True,
                     bufsize=1,
+                    cwd=BASE_DIR,
+                    env=get_subprocess_env(),
                     creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
                 )
 
@@ -224,12 +232,12 @@ class SippEngine:
             pcap_file = config.get("pcap_file", "pcap/g711a.pcap").strip() or "pcap/g711a.pcap"
 
             # Gera XML com 30s de duração
-            single_xml = "single_call.xml"
+            single_xml = get_project_path("single_call.xml")
             ScenarioBuilder.generate_single_call_xml("call.xml.template", single_xml, duracao_ms=30000, pcap_file=pcap_file)
 
-            # Gera CSV
-            csv_path = "single_credenciais.csv"
-            ScenarioBuilder.generate_credentials_csv([(ramal, senha, dest_clean)], output_path=csv_path)
+            # Gera CSV (field0=auth_user, field1=senha, field2=dest_clean)
+            csv_path = get_project_path("single_credenciais.csv")
+            ScenarioBuilder.generate_credentials_csv([(auth_user, senha, dest_clean)], output_path=csv_path)
 
             cmd = [
                 sipp_bin,
@@ -240,8 +248,6 @@ class SippEngine:
                 "-set", "domain", domain,
                 "-set", "user", ramal,
                 "-set", "dest", dest_clean,
-                "-au", auth_user,
-                "-ap", senha,
                 "-m", "1",
                 "-r", "1",
                 "-trace_err"
@@ -271,6 +277,8 @@ class SippEngine:
                     stdin=subprocess.PIPE,
                     text=True,
                     bufsize=1,
+                    cwd=BASE_DIR,
+                    env=get_subprocess_env(),
                     creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
                 )
                 
@@ -342,9 +350,10 @@ class SippEngine:
         dur_fixa = bool(config.get("duracao_fixa", False))
         pcap_file = config.get("pcap_file", "pcap/g711a.pcap").strip() or "pcap/g711a.pcap"
 
+        call_xml_path = get_project_path("call.xml")
         ok, err = ScenarioBuilder.generate_call_xml(
             template_path="call.xml.template",
-            output_path="call.xml",
+            output_path=call_xml_path,
             duracao_min_ms=dur_min,
             duracao_max_ms=dur_max,
             duracao_fixa=dur_fixa,
@@ -354,13 +363,13 @@ class SippEngine:
             log_callback(f"[TESTE] ERRO ao gerar call.xml: {err}", "ERROR")
             return False
 
-        # Gera pool de credenciais/destinos ponderados
+        # Gera pool de credenciais/destinos ponderados (field0=auth_user, field1=senha, field2=dest)
         ramal = config.get("ramal", "").strip()
         auth_user = config.get("usuario_auth", "").strip() or ramal
         senha = config.get("senha", "")
         pool = StrategyManager.generate_weighted_destination_pool(
             destinations=destinations,
-            ramal=ramal,
+            ramal=auth_user,
             senha=senha,
             pool_size=1000,
             token_prefix=config.get("human_token_prefix", "AGENT_")
@@ -368,7 +377,8 @@ class SippEngine:
         
         # Modo SEQUENTIAL ou RANDOM
         csv_mode = "RANDOM" if config.get("dial_mode") == "human_random" else "SEQUENTIAL"
-        ScenarioBuilder.generate_credentials_csv(pool, output_path="credenciais.csv", mode=csv_mode)
+        cred_csv_path = get_project_path("credenciais.csv")
+        ScenarioBuilder.generate_credentials_csv(pool, output_path=cred_csv_path, mode=csv_mode)
 
         # Monta comando SIPp
         sipp_bin = self.get_sipp_binary(config.get("sipp_path", ""))
@@ -389,20 +399,18 @@ class SippEngine:
         cmd = [
             sipp_bin,
             target,
-            "-sf", "call.xml",
-            "-inf", "credenciais.csv",
+            "-sf", call_xml_path,
+            "-inf", cred_csv_path,
             "-t", transport,
             "-set", "domain", domain,
             "-set", "user", ramal,
             "-set", "dest", primeiro_dest,
-            "-au", auth_user,
-            "-ap", senha,
             "-l", str(simultaneas),
             "-r", str(rate),
             "-rp", str(rate_period),
             "-trace_err",
             "-trace_stat",
-            "-stf", "stats.csv",
+            "-stf", get_project_path("stats.csv"),
             "-fd", "1s"
         ]
 
@@ -443,6 +451,8 @@ class SippEngine:
                 stdin=subprocess.PIPE,
                 text=True,
                 bufsize=1,
+                cwd=BASE_DIR,
+                env=get_subprocess_env(),
                 creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
             )
             self.is_running = True
@@ -464,8 +474,9 @@ class SippEngine:
 
             # Thread para monitorar estatísticas do stats.csv
             def _monitor_stats():
+                stats_file = get_project_path("stats.csv")
                 while self.is_running and self.process and self.process.poll() is None:
-                    stats = self._parse_stats_csv("stats.csv", simultaneas)
+                    stats = self._parse_stats_csv(stats_file, simultaneas)
                     if stats:
                         stats_callback(stats)
                     time.sleep(1.0)
@@ -474,7 +485,7 @@ class SippEngine:
                 self.is_running = False
                 log_callback(f"🛑 Teste de carga finalizado (Código de saída: {rc}).", "SUCCESS" if rc == 0 else "WARNING")
                 finished_callback(rc)
-                SecurityValidator.secure_delete_file("credenciais.csv")
+                SecurityValidator.secure_delete_file(cred_csv_path)
 
             self.stats_thread = threading.Thread(target=_monitor_stats, daemon=True)
             self.stats_thread.start()
@@ -483,7 +494,7 @@ class SippEngine:
         except Exception as e:
             self.is_running = False
             log_callback(f"[TESTE] ERRO ao iniciar SIPp: {e}", "ERROR")
-            SecurityValidator.secure_delete_file("credenciais.csv")
+            SecurityValidator.secure_delete_file(cred_csv_path)
             return False
 
     def _parse_stats_csv(self, file_path: str, max_simultaneas: int) -> Optional[Dict[str, Any]]:
@@ -592,4 +603,4 @@ class SippEngine:
 
         # Limpa temporários
         for f in ["credenciais.csv", "single_credenciais.csv", "credenciais_reg.csv"]:
-            SecurityValidator.secure_delete_file(f)
+            SecurityValidator.secure_delete_file(get_project_path(f))
