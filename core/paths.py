@@ -27,6 +27,14 @@ CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
 ENV_FILE = os.path.join(BASE_DIR, ".env")
 ENV_EXAMPLE_FILE = os.path.join(BASE_DIR, ".env.example")
 
+# Diretórios de dependências offline (vendored / wheels)
+LIB_DIR = os.path.join(BASE_DIR, "lib")
+WHEELS_DIR = os.path.join(BASE_DIR, "wheels")
+
+# Injeta automaticamente lib/ no sys.path para execução offline imediata
+if os.path.exists(LIB_DIR) and LIB_DIR not in sys.path:
+    sys.path.insert(0, LIB_DIR)
+
 # Executável SIPp padrão para Windows
 DEFAULT_SIPP_EXE = os.path.join(SIPP_DIR, "sipp.exe" if sys.platform == "win32" else "sipp")
 DEFAULT_PCAP_FILE = os.path.join(PCAP_DIR, "g711a.pcap")

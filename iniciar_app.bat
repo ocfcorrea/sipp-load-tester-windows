@@ -1,53 +1,55 @@
 @echo off
 setlocal enabledelayedexpansion
-title SIPp Load Tester Pro — Inicializador
+title SIPp Load Tester Pro — Inicializador Offline
 cd /d "%~dp0"
 
 echo ============================================================
-echo   SIPp Load Tester Pro - Verificando Ambiente Python...
+echo   SIPp Load Tester Pro - Inicializando (Modo 100%% Offline)
 echo ============================================================
 
-REM 1. Verifica ou cria o ambiente virtual .venv
+REM 1. Se o ambiente virtual .venv ja existe e funciona, executa diretamente
+if exist ".venv\Scripts\python.exe" (
+    echo [OK] Ambiente virtual .venv encontrado.
+    ".venv\Scripts\python.exe" app.py
+    if !ERRORLEVEL! EQU 0 exit /b 0
+)
+
+REM 2. Tenta criar o .venv e instalar pacotes a partir da pasta offline wheels/
+where python >nul 2>nul
+if %ERRORLEVEL% NEQ 0 (
+    echo.
+    echo [ERRO] Python nao encontrado no PATH do sistema.
+    echo Certifique-se de que o Python 3.9+ esta instalado e marcado 'Add to PATH'.
+    echo.
+    pause
+    exit /b 1
+)
+
 if not exist ".venv\Scripts\python.exe" (
-    echo [1/3] Ambiente virtual .venv nao encontrado.
-    echo       Criando ambiente virtual Python...
-    python -m venv .venv
-    if !ERRORLEVEL! NEQ 0 (
-        echo.
-        echo [ERRO] Falha ao criar ambiente virtual. Certifique-se de que o Python 3.9+ esta instalado e no PATH.
-        echo Baixe em: https://www.python.org/downloads/
-        pause
-        exit /b 1
+    echo [*] Configurando ambiente local...
+    python -m venv .venv >nul 2>nul
+    if exist ".venv\Scripts\python.exe" (
+        if exist "wheels" (
+            echo [*] Instalando dependencias locais da pasta offline 'wheels/'...
+            ".venv\Scripts\python.exe" -m pip install --no-index --find-links=wheels -r requirements.txt >nul 2>nul
+        )
     )
-    echo [OK] Ambiente virtual criado com sucesso.
 )
 
-REM 2. Verifica se as dependencias estao instaladas no .venv
-".venv\Scripts\python.exe" -c "import customtkinter, dotenv, PIL, packaging, darkdetect" 2>nul
-if !ERRORLEVEL! NEQ 0 (
-    echo [2/3] Instalando dependencias necessarias (customtkinter, pillow, python-dotenv...)...
-    ".venv\Scripts\python.exe" -m pip install --upgrade pip
-    ".venv\Scripts\python.exe" -m pip install -r requirements.txt
-    if !ERRORLEVEL! NEQ 0 (
-        echo.
-        echo [ERRO] Falha ao instalar dependencias do requirements.txt.
-        echo Tente executar instalar_dependencias.bat manualmente.
-        pause
-        exit /b 1
-    )
-    echo [OK] Dependencias instaladas com sucesso.
+REM 3. Execucao principal: prioriza .venv, com fallback automatico para Python global com lib/ embutida
+if exist ".venv\Scripts\python.exe" (
+    echo [*] Iniciando aplicacao via .venv...
+    ".venv\Scripts\python.exe" app.py
+) else (
+    echo [*] Iniciando aplicacao com bibliotecas embutidas (lib/)...
+    python app.py
 )
-
-REM 3. Inicia a aplicacao
-echo [3/3] Iniciando interface grafica...
-echo.
-".venv\Scripts\python.exe" app.py
 
 if %ERRORLEVEL% NEQ 0 (
     echo.
     echo ============================================================
-    echo [ERRO] A aplicacao encerrou com erro (Codigo: %ERRORLEVEL%).
-    echo Verifique os logs acima ou execute via terminal para mais detalhes.
+    echo [ERRO] A aplicacao encerrou com codigo %ERRORLEVEL%.
     echo ============================================================
+    echo.
     pause
 )

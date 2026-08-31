@@ -7,8 +7,11 @@ Desenvolvido para L5 Networks
 import sys
 import os
 
-# Adiciona o diretório raiz ao PYTHONPATH
+# Adiciona o diretório raiz e a pasta lib/ (dependências offline embutidas) ao PYTHONPATH
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+LIB_DIR = os.path.join(ROOT_DIR, "lib")
+if os.path.exists(LIB_DIR) and LIB_DIR not in sys.path:
+    sys.path.insert(0, LIB_DIR)
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 

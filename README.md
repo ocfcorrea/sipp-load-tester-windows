@@ -73,6 +73,9 @@ Chamadas_Externa_Simultaneas_SIPp/
 │   ├── sipp_engine.py          # Orquestração assíncrona de subprocessos do SIPp
 │   └── sipp_downloader.py      # Localizador inteligente do sipp.exe e checagem de versão
 │
+├── lib/                        # Dependências Python embutidas (100% Offline / Zero-Install)
+├── wheels/                     # Pacotes .whl offline pré-baixados (Python 3.9 a 3.13)
+│
 ├── gui/                        # Interface gráfica Desktop (CustomTkinter)
 │   ├── main_window.py          # Janela principal e coordenação de abas
 │   ├── tab_register.py         # Aba 1: Conexão SIP, Portas/Mídia, Registro com LED e Chamada Única
@@ -88,26 +91,25 @@ Chamadas_Externa_Simultaneas_SIPp/
 
 ---
 
-## 🚀 Como Iniciar em uma Nova Máquina Windows
+## 🚀 Como Iniciar em uma Nova Máquina Windows (100% Offline)
 
-Ao clonar o repositório em uma nova máquina, você pode iniciar de 3 formas:
+O aplicativo é **totalmente autocontido e não requer acesso à internet** na máquina de destino:
 
 ### Opção 1: Inicialização em 1 Clique (Recomendado)
 Dê um duplo clique no arquivo:
 - **`iniciar_app.bat`**
 
 O script:
-1. Detecta se o ambiente virtual (`.venv`) existe; se não existir, cria-o automaticamente via `python -m venv .venv`.
-2. Verifica se as bibliotecas (`customtkinter`, `pillow`, `dotenv`, etc.) estão instaladas; se necessário, instala-as via `pip install -r requirements.txt`.
-3. Garante que o arquivo `.env` exista (copiando `.env.example` caso seja o primeiro clone).
-4. Abre a interface gráfica com DPI awareness ajustado.
+1. Detecta o Python instalado no Windows.
+2. Executa a aplicação imediatamente utilizando as bibliotecas pré-embutidas em `lib/` ou instaladas localmente a partir de `wheels/` (sem precisar baixar nada da internet).
+3. Abre a interface gráfica com DPI awareness ajustado.
 
 ---
 
-### Opção 2: Instalação / Reparo Manual de Dependências
-Caso queira preparar o ambiente previamente:
-1. Dê um duplo clique no arquivo **`instalar_dependencias.bat`**
-2. Em seguida, inicie o app com **`iniciar_app.bat`**
+### Opção 2: Instalação Offline de Dependências
+Caso queira configurar o ambiente virtual `.venv` localmente sem internet:
+1. Dê um duplo clique no arquivo **`instalar_dependencias.bat`** (ele utiliza os arquivos `.whl` da pasta `wheels/`).
+2. Em seguida, inicie o app com **`iniciar_app.bat`**.
 
 ---
 
