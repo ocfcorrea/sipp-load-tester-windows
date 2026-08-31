@@ -17,6 +17,7 @@ from core.paths import (
     get_subprocess_env,
     DEFAULT_SIPP_EXE
 )
+from core.sip_client import SipClient
 from core.scenario_builder import ScenarioBuilder
 from core.strategy_manager import StrategyManager
 from core.sipp_downloader import SippLocator
@@ -58,8 +59,8 @@ class SippEngine:
         result_callback: Callable[[bool, str, Optional[float]], None]
     ):
         """
-        Executa register.xml para testar o registro SIP do ramal.
-        Executado em thread separada com sanitização e mascaramento de senhas.
+        Executa teste de registro SIP do ramal com autenticação Digest (RFC 3261 / RFC 2617).
+        Utiliza o motor nativo SipClient em Python (independente de OpenSSL externo e com suporte a MD5 nativo).
         """
         def _worker():
             host = config.get("asterisk_ip", "").strip()
@@ -90,103 +91,27 @@ class SippEngine:
                 result_callback(False, user_msg, None)
                 return
 
-            sipp_bin = self.get_sipp_binary(config.get("sipp_path", ""))
             target = f"{host}:{p_num}"
+            log_callback(f"[REGISTRO] Enviando REGISTER para {target} ({transport.upper()}) | Ramal: {ramal} (Auth: {auth_user})...", "INFO")
 
-            log_callback(f"[REGISTRO] Testando registro SIP para ramal {ramal} (Auth: {auth_user}) em {target} ({transport})...", "INFO")
+            ok, code, msg, duration = SipClient.test_register(
+                host=host,
+                port=p_num,
+                ramal=ramal,
+                auth_user=auth_user,
+                password=senha,
+                domain=domain,
+                transport=transport,
+                timeout=6.0,
+                local_ip=local_ip
+            )
 
-            # Cria CSV de credencial temporário (field0=auth_user, field1=senha)
-            csv_path = get_project_path("credenciais_reg.csv")
-            ScenarioBuilder.generate_credentials_csv([(auth_user, senha, "")], output_path=csv_path)
-
-            reg_xml = ScenarioBuilder.resolve_scenario_path("register.xml")
-
-            cmd = [
-                sipp_bin,
-                target,
-                "-sf", reg_xml,
-                "-inf", csv_path,
-                "-t", transport,
-                "-set", "domain", domain,
-                "-set", "user", ramal,
-                "-m", "1",
-                "-r", "1",
-                "-trace_err"
-            ]
-            if local_ip:
-                cmd.extend(["-i", local_ip])
-
-            local_port = config.get("local_port", "").strip()
-            if local_port:
-                val_lp_ok, lp_num = SecurityValidator.validate_port(local_port)
-                if val_lp_ok:
-                    cmd.extend(["-p", str(lp_num)])
-
-            # Mascara comando no log
-            masked_cmd = SecurityValidator.mask_credentials(" ".join(cmd), senha)
-            log_callback(f"[REGISTRO] Comando: {masked_cmd}", "DEBUG")
-            start_time = time.time()
-
-            try:
-                proc = subprocess.Popen(
-                    cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    stdin=subprocess.PIPE,
-                    text=True,
-                    bufsize=1,
-                    cwd=BASE_DIR,
-                    env=get_subprocess_env(),
-                    creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
-                )
-
-                stdout_data, stderr_data = proc.communicate(timeout=15)
-                duration = round(time.time() - start_time, 2)
-                full_output = stdout_data + "\n" + stderr_data
-
-                for line in full_output.splitlines():
-                    if line.strip():
-                        masked_line = SecurityValidator.mask_credentials(line, senha)
-                        log_callback(f"[REGISTRO] {masked_line}", "DEBUG")
-
-                # Verifica código de saída e logs
-                if proc.returncode == 0:
-                    log_callback(f"[REGISTRO] SUCESSO: Ramal {ramal} registrado com 200 OK ({duration}s).", "SUCCESS")
-                    result_callback(True, f"Registrado com Sucesso (200 OK em {duration}s)", duration)
-                else:
-                    err_msg = "Falha no registro"
-                    if "401" in full_output or "407" in full_output:
-                        err_msg = "Falha de Autenticação (Verifique Usuário e Senha)"
-                    elif "403" in full_output:
-                        err_msg = "Acesso Proibido (403 Forbidden)"
-                    elif "timeout" in full_output.lower():
-                        err_msg = "Tempo Esgotado (Timeout / Sem resposta do IP)"
-                    else:
-                        err_msg = f"Erro no registro SIP (Código de saída: {proc.returncode})"
-
-                    log_callback(f"[REGISTRO] ERRO: {err_msg}", "ERROR")
-                    result_callback(False, err_msg, None)
-
-            except subprocess.TimeoutExpired:
-                proc.kill()
-                log_callback("[REGISTRO] ERRO: Timeout (o servidor SIP não respondeu em 15s).", "ERROR")
-                result_callback(False, "Timeout: Servidor SIP não respondeu em 15s", None)
-            except FileNotFoundError:
-                msg = f"Executável '{sipp_bin}' não encontrado."
-                log_callback(f"[REGISTRO] ERRO: {msg}", "ERROR")
+            if ok:
+                log_callback(f"[REGISTRO] SUCESSO: Ramal {ramal} registrado com 200 OK em {duration}s.", "SUCCESS")
+                result_callback(True, msg, duration)
+            else:
+                log_callback(f"[REGISTRO] ERRO (Código {code if code else 'Timeout'}): {msg}", "ERROR")
                 result_callback(False, msg, None)
-            except OSError as e:
-                if getattr(e, 'winerror', 0) == 193:
-                    msg = "O executável configurado é Linux (ELF). Use 'bin/sipp/sipp.exe' para Windows."
-                else:
-                    msg = f"Erro ao iniciar processo: {e}"
-                log_callback(f"[REGISTRO] ERRO: {msg}", "ERROR")
-                result_callback(False, msg, None)
-            except Exception as e:
-                log_callback(f"[REGISTRO] ERRO inesperado: {e}", "ERROR")
-                result_callback(False, str(e), None)
-            finally:
-                SecurityValidator.secure_delete_file(csv_path)
 
         t = threading.Thread(target=_worker, daemon=True)
         t.start()

@@ -218,6 +218,32 @@ def test_gui_imports():
     print("  [OK] Módulos da GUI importados com sucesso!")
 
 
+def test_sip_client():
+    print("-> Testando SipClient e cálculo nativo de Digest MD5...")
+    from core.sip_client import SipClient
+    h = SipClient.compute_digest_response(
+        username="1002",
+        realm="asterisk",
+        password="secretpassword",
+        method="REGISTER",
+        uri="sip:192.168.1.100",
+        nonce="4d2f8a",
+        qop="auth",
+        nc="00000001",
+        cnonce="abcd1234"
+    )
+    assert len(h) == 32
+    assert isinstance(h, str)
+    
+    # Testa parsing de desafio WWW-Authenticate
+    sample_hdr = 'Digest realm="asterisk", nonce="5a6b7c", qop="auth", algorithm=MD5'
+    params = SipClient.parse_auth_challenge(sample_hdr)
+    assert params.get("realm") == "asterisk"
+    assert params.get("nonce") == "5a6b7c"
+    assert params.get("qop") == "auth"
+    print("  [OK] SipClient e Digest MD5 validados com sucesso!")
+
+
 if __name__ == "__main__":
     test_paths()
     test_config_manager()
@@ -225,5 +251,6 @@ if __name__ == "__main__":
     test_scenario_builder()
     test_security_validator()
     test_sipp_locator()
+    test_sip_client()
     test_gui_imports()
     print("\n[SUCCESS] TODOS OS TESTES PASSARAM COM SUCESSO!")

@@ -3,21 +3,17 @@
 
 <!-- ============================================================
      call.xml
-     UAC que faz uma chamada COM autenticacao digest e AUDIO REAL (RTP).
-     Fluxo:
-       INVITE -> 401/407 (auth) -> ACK -> INVITE(auth) ->
-       100/180/183 -> 200 OK -> ACK -> toca audio (PCAP) ->
-       segura a chamada -> BYE -> 200 OK
-     O audio e enviado a partir de um arquivo PCAP (G.711 a-law).
-     Rode com -l 100 para ter ate 100 chamadas SIMULTANEAS.
+     UAC que faz chamadas SIP com suporte a autenticação Digest e áudio RTP.
+     Fluxo com branching dinâmico:
+       INVITE -> se 401/407: ACK -> INVITE com auth -> 200 OK -> ACK -> RTP -> BYE
+              -> se 200 OK direto: ACK -> RTP -> BYE
      ============================================================ -->
 
 <scenario name="UAC chamada com audio RTP">
 
-  <!-- Declara [$domain]; o valor vem de -set domain <dominio> no run.sh. -->
   <Global variables="domain,user,dest"/>
 
-  <!-- 1) INVITE inicial (sem auth) -->
+  <!-- 1) INVITE inicial -->
   <send retrans="500">
     <![CDATA[
 
@@ -29,13 +25,13 @@
       Call-ID: [call_id]
       CSeq: 1 INVITE
       Contact: <sip:[$user]@[local_ip]:[local_port];transport=[transport]>
-      User-Agent: SIPp-L5-Test
+      User-Agent: SIPp-Load-Tester-Pro
       Content-Type: application/sdp
       Content-Length: [len]
 
       v=0
       o=sipp [call_number] [call_number] IN IP[local_ip_type] [local_ip]
-      s=SIPp-L5-Test
+      s=SIPp-Load-Tester-Pro
       c=IN IP[media_ip_type] [media_ip]
       t=0 0
       m=audio [media_port] RTP/AVP 8 0 101
@@ -48,13 +44,16 @@
     ]]>
   </send>
 
+  <!-- Respostas ao primeiro INVITE -->
   <recv response="100" optional="true"/>
+  <recv response="180" optional="true"/>
+  <recv response="183" optional="true"/>
+  <recv response="407" auth="true" optional="true" next="send_auth"/>
+  <recv response="401" auth="true" optional="true" next="send_auth"/>
+  <recv response="200" rtd="true" next="call_connected"/>
 
-  <!-- 2) Desafio de autenticacao (401 no chan_pjsip, 407 em alguns cenarios) -->
-  <recv response="407" auth="true" optional="true"/>
-  <recv response="401" auth="true"/>
-
-  <!-- 3) ACK ao desafio -->
+  <!-- 2) Branch de Autenticação Digest (quando exigido pelo PBX) -->
+  <label id="send_auth"/>
   <send>
     <![CDATA[
 
@@ -70,7 +69,6 @@
     ]]>
   </send>
 
-  <!-- 4) INVITE com credenciais (CSeq 2) -->
   <send retrans="500">
     <![CDATA[
 
@@ -83,13 +81,13 @@
       CSeq: 2 INVITE
       Contact: <sip:[$user]@[local_ip]:[local_port];transport=[transport]>
       [authentication]
-      User-Agent: SIPp-L5-Test
+      User-Agent: SIPp-Load-Tester-Pro
       Content-Type: application/sdp
       Content-Length: [len]
 
       v=0
       o=sipp [call_number] [call_number] IN IP[local_ip_type] [local_ip]
-      s=SIPp-L5-Test
+      s=SIPp-Load-Tester-Pro
       c=IN IP[media_ip_type] [media_ip]
       t=0 0
       m=audio [media_port] RTP/AVP 8 0 101
@@ -105,11 +103,10 @@
   <recv response="100" optional="true"/>
   <recv response="180" optional="true"/>
   <recv response="183" optional="true"/>
-
-  <!-- 5) Chamada atendida -->
   <recv response="200" rtd="true"/>
 
-  <!-- 6) ACK final -->
+  <!-- 3) Ponto de convergência: Chamada Estabelecida (200 OK) -->
+  <label id="call_connected"/>
   <send>
     <![CDATA[
 
@@ -125,16 +122,7 @@
     ]]>
   </send>
 
-  <!-- 7/8) AUDIO + duracao da chamada.
-       ATENCAO: este e um TEMPLATE. O run.sh substitui @@DURACAO_MIN_MS@@ e
-       @@DURACAO_MAX_MS@@ e gera o call.xml final. Nao edite o call.xml
-       diretamente - ele e sobrescrito a cada execucao.
-
-       A duracao vem do <pause distribution="uniform">, que sorteia em
-       MILISSEGUNDOS e garante o range exato. Nao usamos contador +
-       <test>/<sample> para isso: 'sample' produz DOUBLE, e comparar um
-       contador inteiro com float via variable2 nao termina de forma
-       confiavel - era a causa de chamadas estourando o range. -->
+  <!-- 4) Playback de Áudio PCAP e Duração -->
   <nop>
     <action>
       <exec play_pcap_audio="@@PCAP_FILE@@"/>
@@ -144,7 +132,7 @@
   <pause distribution="uniform"
          min="@@DURACAO_MIN_MS@@" max="@@DURACAO_MAX_MS@@"/>
 
-  <!-- 9) Encerra a chamada -->
+  <!-- 5) Finalização da Chamada -->
   <send retrans="500">
     <![CDATA[
 

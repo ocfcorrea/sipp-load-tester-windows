@@ -18,6 +18,10 @@ if ROOT_DIR not in sys.path:
 # Validação defensiva de dependências essenciais
 try:
     import customtkinter as ctk
+    try:
+        ctk.windows.widgets.core_rendering.DrawEngine.preferred_drawing_method = "polygon_shapes"
+    except Exception:
+        pass
     from dotenv import load_dotenv
     import PIL
     import packaging
