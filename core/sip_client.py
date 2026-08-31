@@ -116,24 +116,26 @@ class SipClient:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.settimeout(timeout)
                 sock.connect((host, port))
+                my_ip = local_ip or sock.getsockname()[0]
+                my_port = sock.getsockname()[1]
             else:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 sock.settimeout(timeout)
+                # No Windows, é obrigatório efetuar o bind antes de chamar getsockname para evitar WinError 10022
+                sock.bind(('', 0))
+                my_port = sock.getsockname()[1]
 
-            # Obtém IP local
-            if local_ip:
-                my_ip = local_ip
-            else:
-                try:
-                    # Abre socket fictício para determinar a interface de saída
-                    s_probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                    s_probe.connect((host, port if port > 0 else 5060))
-                    my_ip = s_probe.getsockname()[0]
-                    s_probe.close()
-                except Exception:
-                    my_ip = "127.0.0.1"
-
-            my_port = sock.getsockname()[1] if is_tcp else (sock.getsockname()[1] if sock.getsockname()[1] != 0 else 5060)
+                if local_ip:
+                    my_ip = local_ip
+                else:
+                    try:
+                        # Abre socket fictício para determinar a interface de saída correta
+                        s_probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                        s_probe.connect((host, port if port > 0 else 5060))
+                        my_ip = s_probe.getsockname()[0]
+                        s_probe.close()
+                    except Exception:
+                        my_ip = "127.0.0.1"
 
             call_id = f"{uuid.uuid4().hex}@{my_ip}"
             from_tag = uuid.uuid4().hex[:8]
@@ -265,8 +267,14 @@ class SipClient:
             return False, 0, f"Tempo esgotado (Timeout: Servidor {host}:{port} não respondeu em {timeout}s)", round(time.time() - start_time, 2)
         except ConnectionRefusedError:
             return False, 0, f"Conexão recusada em {host}:{port}. Verifique se o Asterisk está rodando.", round(time.time() - start_time, 2)
+        except ConnectionResetError:
+            return False, 0, f"Porta SIP {port} fechada em {host}. Verifique se o Asterisk está ativo e escutando nessa porta.", round(time.time() - start_time, 2)
+        except OSError as e:
+            if getattr(e, 'winerror', 0) == 10054:
+                return False, 0, f"Porta SIP {port} fechada em {host}. Verifique se o Asterisk está ativo e escutando nessa porta.", round(time.time() - start_time, 2)
+            return False, 0, f"Erro de rede: {e}", round(time.time() - start_time, 2)
         except Exception as e:
-            return False, 0, f"Erro de comunicação de rede: {e}", round(time.time() - start_time, 2)
+            return False, 0, f"Erro inesperado no registro: {e}", round(time.time() - start_time, 2)
         finally:
             if sock:
                 try:
