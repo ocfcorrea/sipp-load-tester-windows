@@ -3,8 +3,9 @@ Tab About - Aba 4: Sobre a Aplicação, Topologia de Rede, Fluxos SIP e Document
 Estilo Slate / Dark Navy Suave com diagramas e guias técnicos integrados.
 """
 
+import webbrowser
 import customtkinter as ctk
-from core.version import get_version_tag
+from core.version import get_version_tag, get_version_info
 
 
 class TabAbout(ctk.CTkScrollableFrame):
@@ -16,6 +17,8 @@ class TabAbout(ctk.CTkScrollableFrame):
         self._build_ui()
 
     def _build_ui(self):
+        ver_info = get_version_info()
+
         # -------------------------------------------------------------
         # 1. CARD: VISÃO GERAL & INFORMAÇÕES TÉCNICAS
         # -------------------------------------------------------------
@@ -24,7 +27,7 @@ class TabAbout(ctk.CTkScrollableFrame):
 
         lbl_ov_title = ctk.CTkLabel(
             overview_card,
-            text="⚡ SIPp Load Tester Pro — Guia Completo & Topologia",
+            text=f"⚡ SIPp Load Tester Pro — Release {ver_info.get('release_tag', 'v2.0')} Pro",
             font=ctk.CTkFont(size=15, weight="bold"),
             text_color="#f1f5f9"
         )
@@ -46,22 +49,48 @@ class TabAbout(ctk.CTkScrollableFrame):
 
         # Badges técnicos
         badges_frame = ctk.CTkFrame(overview_card, fg_color="transparent")
-        badges_frame.pack(fill="x", padx=16, pady=(0, 14))
+        badges_frame.pack(fill="x", padx=16, pady=(0, 12))
 
         tech_info = [
-            ("Versão", f"{get_version_tag()} Pro"),
-            ("Motor SIP", "SIPp v3.2 Windows / SipClient"),
-            ("Interface", "CustomTkinter (Slate Theme)"),
+            ("Versão", f"{ver_info.get('release_tag', 'v2.0')} Pro"),
+            ("Commit", f"{ver_info.get('commit', 'HEAD')}"),
+            ("Motor SIP", "SIPp v3.2 Win / SipClient"),
             ("Autenticação", "Digest MD5 (RFC 2617)"),
-            ("Áudio RTP", "PCMA G.711 a-law (8kHz)"),
-            ("Segurança", "Sanitização & Mascaramento"),
+            ("Áudio RTP", "PCMA G.711a (8kHz)"),
+            ("Segurança", "Zero Leaks (.env)"),
         ]
 
         for i, (k, v) in enumerate(tech_info):
             f_b = ctk.CTkFrame(badges_frame, fg_color="#1a1c26", corner_radius=6, border_width=1, border_color="#383c4e")
             f_b.pack(side="left", padx=(0, 8), pady=2)
             ctk.CTkLabel(f_b, text=f"{k}: ", font=ctk.CTkFont(size=11, weight="bold"), text_color="#94a3b8").pack(side="left", padx=(8, 2), pady=4)
-            ctk.CTkLabel(f_b, text=v, font=ctk.CTkFont(size=11), text_color="#f1f5f9").pack(side="left", padx=(0, 8), pady=4)
+            ctk.CTkLabel(f_b, text=v, font=ctk.CTkFont(size=11), text_color="#38bdf8" if k in ("Versão", "Commit") else "#f1f5f9").pack(side="left", padx=(0, 8), pady=4)
+
+        # Botões de links rápidos (GitHub Releases e Repositório)
+        links_frame = ctk.CTkFrame(overview_card, fg_color="transparent")
+        links_frame.pack(fill="x", padx=16, pady=(0, 14))
+
+        btn_rel = ctk.CTkButton(
+            links_frame,
+            text="📦 Ver Releases & Downloads (.EXE)",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color="#0284c7",
+            hover_color="#0369a1",
+            height=30,
+            command=lambda: webbrowser.open("https://github.com/ocfcorrea/TestSIPpWindows/releases")
+        )
+        btn_rel.pack(side="left", padx=(0, 10))
+
+        btn_repo = ctk.CTkButton(
+            links_frame,
+            text="⭐ Repositório no GitHub",
+            font=ctk.CTkFont(size=12),
+            fg_color="#334155",
+            hover_color="#475569",
+            height=30,
+            command=lambda: webbrowser.open("https://github.com/ocfcorrea/TestSIPpWindows")
+        )
+        btn_repo.pack(side="left", padx=(0, 10))
 
         # -------------------------------------------------------------
         # 2. CARD: TOPOLOGIA DE REDE & ARQUITETURA DE COMUNICAÇÃO

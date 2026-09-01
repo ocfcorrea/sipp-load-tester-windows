@@ -1,7 +1,7 @@
 # SIPp Load Tester Pro — Gerador de Chamadas Simultâneas para Windows
 
 [![GitHub Releases](https://img.shields.io/github/v/release/ocfcorrea/TestSIPpWindows?label=Download%20.EXE%20Release&color=0284c7&logo=github)](https://github.com/ocfcorrea/TestSIPpWindows/releases)
-[![Versão](https://img.shields.io/badge/Versão-v2.0_Pro-0284c7.svg)](https://github.com/ocfcorrea/TestSIPpWindows/releases)
+[![Versão](https://img.shields.io/badge/Versão-v2.0_Pro_Auto--SemVer-0284c7.svg)](https://github.com/ocfcorrea/TestSIPpWindows/releases)
 [![Plataforma](https://img.shields.io/badge/Plataforma-Windows_10_|_11_|_Server-38bdf8.svg)](#-requisitos-de-sistema)
 [![Sinalização](https://img.shields.io/badge/SIP-RFC_3261_|_RFC_2617_MD5-10b981.svg)](#-como-funciona-a-transmissão-de-áudio-rtp-pcap)
 [![Segurança](https://img.shields.io/badge/Segurança-Zero_Leaks_with_.env-emerald.svg)](#-camada-de-segurança--isolamento-de-credenciais-env)
@@ -9,7 +9,13 @@
 
 Aplicação Desktop profissional para **Windows** desenvolvida para geração de **chamadas SIP simultâneas de alta performance com áudio real RTP** (PCAP G.711 a-law), registro de ramais com autenticação Digest (RFC 3261 / RFC 2617), testes de estresse, simulação de tráfego orgânico/humano e controle de capacidade em tempo real contra servidores **Asterisk**, PBX IP, FreePBX, Issabel, OpenSIPS, Kamailio e Gateways SIP.
 
-O aplicativo conta com uma interface gráfica moderna em **Slate Dark UI**, motor SIP nativo em Python com **autenticação Digest MD5 integrada** e streaming RTP, indicador de status de registro com **LED luminoso**, console de eventos em tempo real, métricas contínuas e **100% de operação offline** no Windows.
+O aplicativo conta com uma interface gráfica moderna em **Slate Dark UI**, motor SIP nativo em Python com **autenticação Digest MD5 integrada** e streaming RTP, indicador de status de registro com **LED luminoso**, console de eventos em tempo real, métricas contínuas, **links diretos para releases** e **100% de operação offline** no Windows.
+
+---
+
+> [!TIP]
+> ### 📦 Download Rápido da Release Pronta (.EXE)
+> Você pode baixar a versão executável standalone compilada mais recente diretamente na página de [**GitHub Releases**](https://github.com/ocfcorrea/TestSIPpWindows/releases). Não é necessário instalar Python, dependências ou SIPp para rodar o `.exe`.
 
 ---
 
@@ -17,22 +23,23 @@ O aplicativo conta com uma interface gráfica moderna em **Slate Dark UI**, moto
 1. [Requisitos de Sistema & Pré-requisitos](#-requisitos-de-sistema--pré-requisitos)
 2. [Como Iniciar no Windows](#-como-iniciar-no-windows)
 3. [Versionamento e Geração de Releases Executáveis (.EXE)](#-versionamento-e-geração-de-releases-executáveis-exe)
-4. [Guia Completo de Todas as Abas da Aplicação](#-guia-completo-de-todas-as-abas-da-aplicação)
+4. [Publicação Automática de Releases no GitHub (CI/CD)](#-publicação-automática-de-releases-no-github-cicd)
+5. [Guia Completo de Todas as Abas da Aplicação](#-guia-completo-de-todas-as-abas-da-aplicação)
    - [Aba 1: Registro SIP & Conexão](#-aba-1-registro-sip--conexão)
    - [Aba 2: Estratégia de Discagem, Pesos & Simulação Humana](#-aba-2-estratégia-de-discagem-pesos--simulação-humana)
    - [Aba 3: Console em Tempo Real, Métricas & Controles](#-aba-3-console-em-tempo-real-métricas--controles)
    - [Aba 4: Sobre & Topologia Técnica](#-aba-4-sobre--topologia-técnica)
-5. [Transmissão de Áudio RTP (PCAP)](#-transmissão-de-áudio-rtp-pcap)
-6. [Segurança & Isolamento de Credenciais (.env)](#-segurança--isolamento-de-credenciais-env)
-7. [Suíte de Testes Automatizados](#-suíte-de-testes-automatizados)
-8. [Perguntas Frequentes & Resolução de Problemas](#-perguntas-frequentes--resolução-de-problemas)
+6. [Transmissão de Áudio RTP (PCAP)](#-transmissão-de-áudio-rtp-pcap)
+7. [Segurança & Isolamento de Credenciais (.env)](#-segurança--isolamento-de-credenciais-env)
+8. [Suíte de Testes Automatizados](#-suíte-de-testes-automatizados)
+9. [Perguntas Frequentes & Resolução de Problemas](#-perguntas-frequentes--resolução-de-problemas)
 
 ---
 
 ## 💻 Requisitos de Sistema & Pré-requisitos
 
 - **Sistema Operacional**: Windows 10, Windows 11 ou Windows Server (64-bit).
-- **Executável Standalone (.exe)**: **Não requer Python nem SIPp instalados**. Basta executar o binário compilado.
+- **Executável Standalone (.exe)**: **Não requer Python nem SIPp instalados**. Basta baixar o binário da [página de Releases](https://github.com/ocfcorrea/TestSIPpWindows/releases) e executar.
 - **Execução via Código Fonte**:
   - Python 3.9+ (homologado em Python 3.10, 3.11, 3.12 e 3.13).
   - Todas as dependências externas já vêm embutidas offline na pasta `lib/`.
@@ -43,9 +50,9 @@ O aplicativo conta com uma interface gráfica moderna em **Slate Dark UI**, moto
 ## 🚀 Como Iniciar no Windows
 
 ### Opção 1: Executável Standalone Versionado (Distribuição / Produção)
-Se você já gerou o executável compilado ou recebeu o pacote pronto:
-- Dê um duplo clique em **`dist\SIPp_Load_Tester_Pro_v2.0.8.exe`** (ou `dist\SIPp_Load_Tester_Pro.exe`).
-- O aplicativo abre instantaneamente em qualquer máquina Windows sem necessidade de configurar nada.
+Se você baixou a release oficial do GitHub ou compilou localmente:
+- Dê um duplo clique em **`dist\SIPp_Load_Tester_Pro_v<VERSAO>.exe`** (ou `dist\SIPp_Load_Tester_Pro.exe`).
+- O aplicativo abre instantaneamente em qualquer máquina Windows sem necessidade de instalar dependências.
 
 ---
 
@@ -76,9 +83,9 @@ python app.py
 
 O projeto conta com um pipeline inteligente de versionamento semântico integrado ao Git:
 
-### Como Funciona a Release Numérica por Commit
+### Como Funciona a Release Numérica por Commit (SemVer Dinâmico)
 1. O módulo central [`core/version.py`](file:///e:/00%20-%20DEV/Chamadas_Externa_Simultaneas_SIPp/core/version.py) consulta a contagem total de commits do repositório Git (`git rev-list --count HEAD`).
-2. A versão é formatada automaticamente como: `v2.0.<NUMERO_DO_COMMIT>` (exemplo: commit 8 gera `v2.0.8`).
+2. A versão é formatada automaticamente como: `v2.0.<NUMERO_DO_COMMIT>` (exemplo: commit 11 gera `v2.0.11`).
 3. Toda vez que você faz um novo commit no Git e compila o projeto, a versão numérica sobe automaticamente sem precisar editar nenhum arquivo manual.
 
 ---
@@ -94,7 +101,7 @@ O script executa automaticamente as seguintes etapas:
 2. Extrai e grava a versão atual em `version.json`.
 3. Executa o PyInstaller com a spec [`SIPp_Load_Tester_Pro.spec`](file:///e:/00%20-%20DEV/Chamadas_Externa_Simultaneas_SIPp/SIPp_Load_Tester_Pro.spec), embutindo todas as dependências, cenários XML, áudios PCAP e motor SIP em um único arquivo standalone.
 4. Gera dois binários na pasta `dist\`:
-   - **`dist\SIPp_Load_Tester_Pro_v<VERSAO>.exe`**: Cópia versionada da release para histórico e controle de versão (ex: `SIPp_Load_Tester_Pro_v2.0.8.exe`).
+   - **`dist\SIPp_Load_Tester_Pro_v<VERSAO>.exe`**: Cópia versionada da release para histórico e controle de versão (ex: `SIPp_Load_Tester_Pro_v2.0.11.exe`).
    - **`dist\SIPp_Load_Tester_Pro.exe`**: Executável principal padrão.
 
 ---
@@ -102,7 +109,7 @@ O script executa automaticamente as seguintes etapas:
 #### Método Manual via Terminal:
 ```powershell
 # 1. Salva e registra a versão atual do commit
-python -c "from core.version import save_version_file; print(save_version_file())"
+python -c "from core.version import save_version_file; print('Versão salva:', save_version_file())"
 
 # 2. Executa a compilação com PyInstaller
 pyinstaller --noconfirm SIPp_Load_Tester_Pro.spec
@@ -110,6 +117,28 @@ pyinstaller --noconfirm SIPp_Load_Tester_Pro.spec
 # 3. Cria a cópia versionada da release
 python -c "import shutil, os; from core.version import get_version_tag; tag = get_version_tag(); shutil.copy2('dist/SIPp_Load_Tester_Pro.exe', f'dist/SIPp_Load_Tester_Pro_{tag}.exe')"
 ```
+
+---
+
+## 🚀 Publicação Automática de Releases no GitHub (CI/CD)
+
+O repositório possui uma GitHub Action configurada em [`.github/workflows/release.yml`](file:///e:/00%20-%20DEV/Chamadas_Externa_Simultaneas_SIPp/.github/workflows/release.yml) para gerar e publicar releases automaticamente no GitHub.
+
+### Para publicar uma nova release oficial:
+```powershell
+# 1. Obtenha a tag da versão atual
+$TAG = python -c "from core.version import get_version_tag; print(get_version_tag())"
+
+# 2. Crie e envie a tag para o GitHub
+git tag $TAG
+git push origin $TAG
+```
+
+A GitHub Action irá:
+1. Configurar o ambiente Windows Runner com Python 3.12.
+2. Gerar a versão dinâmica baseada no Git.
+3. Compilar o executável `.exe` standalone com PyInstaller.
+4. Criar a Release oficial no GitHub e anexar os binários `SIPp_Load_Tester_Pro_v*.exe` e `SIPp_Load_Tester_Pro.exe` prontos para download.
 
 ---
 
@@ -265,7 +294,7 @@ Painel de comando operacional do teste de carga e geração de simultâneas.
 
 ### 📖 Aba 4: Sobre & Topologia Técnica
 
-Apresenta detalhes da versão ativa, topologia de sinalização SIP e fluxo de áudio RTP:
+Apresenta detalhes da versão ativa, links de download de releases, repositório GitHub, topologia de sinalização SIP e fluxo de áudio RTP:
 
 ```text
 ┌─────────────────────────────────────────┐                ┌─────────────────────────────────────────┐
@@ -318,7 +347,7 @@ python tests/test_backend.py
 Saída esperada:
 ```text
 -> Testando core.paths...                  [OK] core.paths validado!
--> Testando core.version...                [OK] core.version validado! (Versão detectada: v2.0.8)
+-> Testando core.version...                [OK] core.version validado! (Versão detectada: v2.0.x)
 -> Testando ConfigManager e .env...        [OK] ConfigManager e isolamento .env validados com sucesso!
 -> Testando StrategyManager...             [OK] StrategyManager validado!
 -> Testando ScenarioBuilder...             [OK] ScenarioBuilder validado!
@@ -334,8 +363,9 @@ Saída esperada:
 
 ## ❓ Perguntas Frequentes & Resolução de Problemas
 
-### 1. "Como gerar uma release versionada para distribuir aos clientes?"
-Execute o arquivo `gerar_executavel.bat`. Ele criará o executável standalone na pasta `dist/` com a tag de versão numérica (ex: `SIPp_Load_Tester_Pro_v2.0.8.exe`). Você pode copiar esse arquivo para qualquer computador com Windows sem instalar nada.
+### 1. "Como baixar ou gerar uma release versionada para distribuir aos clientes?"
+- **Download direto**: Acesse [GitHub Releases](https://github.com/ocfcorrea/TestSIPpWindows/releases) e baixe o binário compilado `.exe`.
+- **Compilação local**: Execute o arquivo `gerar_executavel.bat`. Ele criará o executável standalone na pasta `dist/` com a tag de versão numérica (ex: `SIPp_Load_Tester_Pro_v2.0.11.exe`). Você pode copiar esse arquivo para qualquer computador com Windows sem instalar nada.
 
 ### 2. "Como funciona o loop contínuo de chamadas simultâneas?"
 Se você configurar **30 Simultâneas** e **Total = 0**, o aplicativo manterá **30 chamadas ativas conectadas o tempo todo**. Quando uma chamada atingir sua duração (ex: 60s) e desligar, outra chamada será iniciada imediatamente no mesmo instante para repor a vaga, mantendo o PBX permanentemente sob a carga desejada.

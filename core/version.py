@@ -54,11 +54,33 @@ def get_git_short_hash() -> str:
 def get_version_info() -> Dict[str, Any]:
     """
     Retorna o dicionário completo com informações de versão.
-    Prioriza arquivo version.json estático (se empacotado no .exe), 
+    Prioriza arquivo version.json estático se empacotado no .exe (frozen), 
     caso contrário consulta o Git local em tempo real.
     """
-    # 1. Se existir version.json estático (gerado no build do PyInstaller)
-    if os.path.exists(VERSION_JSON_FILE):
+    import sys
+
+    # 1. Se estiver rodando como executável compilado (.exe / frozen do PyInstaller)
+    if getattr(sys, 'frozen', False):
+        base_dir = getattr(sys, '_MEIPASS', ROOT_DIR)
+        json_path = os.path.join(base_dir, "version.json")
+        if not os.path.exists(json_path):
+            json_path = VERSION_JSON_FILE
+
+        if os.path.exists(json_path):
+            try:
+                with open(json_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    if "version" in data:
+                        return data
+            except Exception:
+                pass
+
+    # 2. Consulta Git dinâmico em ambiente de desenvolvimento / build
+    build_num = get_git_commit_count()
+    commit_hash = get_git_short_hash()
+
+    # 3. Se Git não retornar número válido (ex: zip baixado sem .git), tenta version.json como fallback
+    if build_num == VERSION_FALLBACK_BUILD and os.path.exists(VERSION_JSON_FILE):
         try:
             with open(VERSION_JSON_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -67,9 +89,6 @@ def get_version_info() -> Dict[str, Any]:
         except Exception:
             pass
 
-    # 2. Consulta Git dinâmico
-    build_num = get_git_commit_count()
-    commit_hash = get_git_short_hash()
     version_str = f"{VERSION_MAJOR}.{VERSION_MINOR}.{build_num}"
 
     return {
