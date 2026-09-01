@@ -5,6 +5,7 @@
 [![Plataforma](https://img.shields.io/badge/Plataforma-Windows_10_|_11_|_Server-38bdf8.svg)](#-requisitos-de-sistema)
 [![Sinalização](https://img.shields.io/badge/SIP-RFC_3261_|_RFC_2617_MD5-10b981.svg)](#-como-funciona-a-transmissão-de-áudio-rtp-pcap)
 [![Segurança](https://img.shields.io/badge/Segurança-Zero_Leaks_with_.env-emerald.svg)](#-camada-de-segurança--isolamento-de-credenciais-env)
+[![Licença: MIT](https://img.shields.io/badge/Licença-MIT-yellow.svg)](LICENSE)
 [![Operação](https://img.shields.io/badge/Operação-100%25_Offline-purple.svg)](#-como-iniciar-no-windows)
 
 Aplicação Desktop profissional para **Windows** desenvolvida para geração de **chamadas SIP simultâneas de alta performance com áudio real RTP** (PCAP G.711 a-law), registro de ramais com autenticação Digest (RFC 3261 / RFC 2617), testes de estresse, simulação de tráfego orgânico/humano e controle de capacidade em tempo real contra servidores **Asterisk**, PBX IP, FreePBX, Issabel, OpenSIPS, Kamailio e Gateways SIP.
@@ -33,6 +34,7 @@ O aplicativo conta com uma interface gráfica moderna em **Slate Dark UI**, moto
 7. [Segurança & Isolamento de Credenciais (.env)](#-segurança--isolamento-de-credenciais-env)
 8. [Suíte de Testes Automatizados](#-suíte-de-testes-automatizados)
 9. [Perguntas Frequentes & Resolução de Problemas](#-perguntas-frequentes--resolução-de-problemas)
+10. [Licença](#-licença)
 
 ---
 
@@ -372,3 +374,10 @@ Se você configurar **30 Simultâneas** e **Total = 0**, o aplicativo manterá *
 
 ### 3. "O aplicativo funciona sem acesso à internet?"
 **Sim, 100% offline.** Todas as bibliotecas Python e arquivos de mídia necessários já estão embutidos.
+
+---
+
+## 📄 Licença
+
+Este projeto é distribuído sob os termos da licença [**MIT**](LICENSE). Você é livre para utilizar, modificar, distribuir e integrar em ambientes privados e comerciais conforme as permissões da licença.
+
