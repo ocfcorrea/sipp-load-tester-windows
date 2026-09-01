@@ -1,6 +1,6 @@
 """
 Tab Console - Aba 3: Console de Execução em Tempo Real, Métricas de Simultaneidade e Controles.
-Estilo Shadcn Luna Minimalista com paleta de cores neutras e botões suaves.
+Estilo Slate / Dark Navy Suave com paleta de cores moderna e botões claros.
 """
 
 from datetime import datetime
@@ -13,7 +13,7 @@ from gui.components.metric_card import MetricCard
 
 
 class TabConsole(ctk.CTkFrame):
-    """Aba com métricas em tempo real, console de log e painel de controle em cores neutras."""
+    """Aba com métricas em tempo real, console de log e painel de controle em cores Slate."""
 
     def __init__(
         self,
@@ -38,10 +38,10 @@ class TabConsole(ctk.CTkFrame):
 
     def _build_ui(self):
         # -------------------------------------------------------------
-        # 1. LINHA DE CARDS DE MÉTRICAS (Cores Neutras e Suaves)
+        # 1. LINHA DE CARDS DE MÉTRICAS (Slate Style)
         # -------------------------------------------------------------
         metrics_frame = ctk.CTkFrame(self, fg_color="transparent")
-        metrics_frame.pack(fill="x", padx=10, pady=(8, 4))
+        metrics_frame.pack(fill="x", padx=6, pady=(6, 4))
         metrics_frame.grid_columnconfigure((0, 1, 2, 3, 4), weight=1)
 
         self.card_simult = MetricCard(
@@ -49,56 +49,56 @@ class TabConsole(ctk.CTkFrame):
             title="Simultâneas Ativas",
             value="0",
             unit="/ 100",
-            accent_color="#38bdf8",  # Soft Sky Slate
+            accent_color="#38bdf8",  # Soft Sky
             icon="📞"
         )
-        self.card_simult.grid(row=0, column=0, sticky="ew", padx=4)
+        self.card_simult.grid(row=0, column=0, sticky="ew", padx=3)
 
         self.card_total = MetricCard(
             metrics_frame,
             title="Total Disparadas",
             value="0",
             unit="ch",
-            accent_color="#a1a1aa",  # Neutral Zinc
+            accent_color="#94a3b8",  # Slate
             icon="📈"
         )
-        self.card_total.grid(row=0, column=1, sticky="ew", padx=4)
+        self.card_total.grid(row=0, column=1, sticky="ew", padx=3)
 
         self.card_success = MetricCard(
             metrics_frame,
             title="Atendidas (200 OK)",
             value="0",
             unit="ok",
-            accent_color="#4ade80",  # Soft Emerald
+            accent_color="#4ade80",  # Emerald
             icon="✅"
         )
-        self.card_success.grid(row=0, column=2, sticky="ew", padx=4)
+        self.card_success.grid(row=0, column=2, sticky="ew", padx=3)
 
         self.card_failed = MetricCard(
             metrics_frame,
             title="Falhas / Timeouts",
             value="0",
             unit="err",
-            accent_color="#f87171",  # Soft Rose
+            accent_color="#f87171",  # Rose
             icon="❌"
         )
-        self.card_failed.grid(row=0, column=3, sticky="ew", padx=4)
+        self.card_failed.grid(row=0, column=3, sticky="ew", padx=3)
 
         self.card_cps = MetricCard(
             metrics_frame,
             title="Taxa Instantânea",
             value="0.0",
             unit="cps",
-            accent_color="#fbbf24",  # Soft Amber
+            accent_color="#fbbf24",  # Amber
             icon="⚡"
         )
-        self.card_cps.grid(row=0, column=4, sticky="ew", padx=4)
+        self.card_cps.grid(row=0, column=4, sticky="ew", padx=3)
 
         # -------------------------------------------------------------
-        # 2. CONSOLE DE LOGS (Shadcn Container)
+        # 2. CONSOLE DE LOGS (Slate Container)
         # -------------------------------------------------------------
-        console_container = ctk.CTkFrame(self, corner_radius=8, fg_color="#18181b", border_width=1, border_color="#27272a")
-        console_container.pack(fill="both", expand=True, padx=10, pady=6)
+        console_container = ctk.CTkFrame(self, corner_radius=8, fg_color="#272a37", border_width=1, border_color="#383c4e")
+        console_container.pack(fill="both", expand=True, padx=6, pady=4)
 
         # Barra de ferramentas do console
         toolbar = ctk.CTkFrame(console_container, fg_color="transparent")
@@ -106,9 +106,9 @@ class TabConsole(ctk.CTkFrame):
 
         lbl_console = ctk.CTkLabel(
             toolbar,
-            text="🖥️ Console de Execução & Logs do SIPp",
-            font=ctk.CTkFont(size=13, weight="bold"),
-            text_color="#f4f4f5"
+            text="🖥️ Console de Execução & Logs em Tempo Real",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color="#f1f5f9"
         )
         lbl_console.pack(side="left", padx=4)
 
@@ -118,11 +118,9 @@ class TabConsole(ctk.CTkFrame):
             width=70,
             height=26,
             font=ctk.CTkFont(size=11),
-            fg_color="#27272a",
-            hover_color="#3f3f46",
-            text_color="#f4f4f5",
-            border_width=1,
-            border_color="#3f3f46",
+            fg_color="#383c4e",
+            hover_color="#475569",
+            text_color="#f1f5f9",
             command=self.clear_logs
         )
         btn_clear.pack(side="right", padx=3)
@@ -133,11 +131,9 @@ class TabConsole(ctk.CTkFrame):
             width=70,
             height=26,
             font=ctk.CTkFont(size=11),
-            fg_color="#27272a",
-            hover_color="#3f3f46",
-            text_color="#f4f4f5",
-            border_width=1,
-            border_color="#3f3f46",
+            fg_color="#383c4e",
+            hover_color="#475569",
+            text_color="#f1f5f9",
             command=self.copy_logs
         )
         btn_copy.pack(side="right", padx=3)
@@ -148,93 +144,91 @@ class TabConsole(ctk.CTkFrame):
             width=70,
             height=26,
             font=ctk.CTkFont(size=11),
-            fg_color="#27272a",
-            hover_color="#3f3f46",
-            text_color="#f4f4f5",
-            border_width=1,
-            border_color="#3f3f46",
+            fg_color="#383c4e",
+            hover_color="#475569",
+            text_color="#f1f5f9",
             command=self.export_logs
         )
         btn_export.pack(side="right", padx=3)
 
-        # Caixa de texto do console (Dark Zinc minimalista)
+        # Caixa de texto do console (Fundo Slate Escuro)
         self.log_textbox = ctk.CTkTextbox(
             console_container,
             font=ctk.CTkFont(family="Consolas", size=11),
             wrap="none",
             corner_radius=6,
-            fg_color="#09090b",
-            text_color="#e4e4e7",
+            fg_color="#1a1c26",
+            text_color="#e2e8f0",
             border_width=1,
-            border_color="#27272a"
+            border_color="#383c4e"
         )
         self.log_textbox.pack(fill="both", expand=True, padx=10, pady=(2, 10))
 
         # -------------------------------------------------------------
-        # 3. BARRA DE CONTROLE DE EXECUÇÃO (Botões Menos Fortes / Suaves)
+        # 3. BARRA DE CONTROLE DE EXECUÇÃO
         # -------------------------------------------------------------
-        control_card = ctk.CTkFrame(self, corner_radius=8, fg_color="#18181b", border_width=1, border_color="#27272a")
-        control_card.pack(fill="x", padx=10, pady=(2, 8))
+        control_card = ctk.CTkFrame(self, corner_radius=8, fg_color="#272a37", border_width=1, border_color="#383c4e")
+        control_card.pack(fill="x", padx=6, pady=(2, 6))
 
         ctrl_inner = ctk.CTkFrame(control_card, fg_color="transparent")
-        ctrl_inner.pack(fill="x", padx=12, pady=10)
+        ctrl_inner.pack(fill="x", padx=10, pady=8)
         ctrl_inner.grid_columnconfigure((0, 1, 2, 3), weight=1)
 
-        # Botão Iniciar Teste de Carga (Shadcn Primary)
+        # Botão Iniciar Teste de Carga
         self.btn_start = ctk.CTkButton(
             ctrl_inner,
             text="🚀 INICIAR TESTE DE CARGA",
             font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#fafafa",
-            hover_color="#e4e4e7",
-            text_color="#18181b",
+            fg_color="#0284c7",
+            hover_color="#0369a1",
+            text_color="#f1f5f9",
             height=36,
             corner_radius=6,
             command=self._on_start_load
         )
-        self.btn_start.grid(row=0, column=0, sticky="ew", padx=6)
+        self.btn_start.grid(row=0, column=0, sticky="ew", padx=4)
 
-        # Botão Pausar / Retomar (Muted Amber)
+        # Botão Pausar / Retomar
         self.btn_pause = ctk.CTkButton(
             ctrl_inner,
             text="⏸️ Pausar ('p')",
             font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#27272a",
-            hover_color="#3f3f46",
+            fg_color="#383c4e",
+            hover_color="#475569",
             text_color="#fbbf24",
             border_width=1,
-            border_color="#78350f",
+            border_color="#b45309",
             height=36,
             corner_radius=6,
             state="disabled",
             command=self._on_pause_resume
         )
-        self.btn_pause.grid(row=0, column=1, sticky="ew", padx=6)
+        self.btn_pause.grid(row=0, column=1, sticky="ew", padx=4)
 
-        # Botão Parar Suave (Muted Orange)
+        # Botão Parar Suave
         self.btn_soft_stop = ctk.CTkButton(
             ctrl_inner,
             text="🛑 Parar Suave ('q')",
             font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#27272a",
-            hover_color="#3f3f46",
+            fg_color="#383c4e",
+            hover_color="#475569",
             text_color="#fb923c",
             border_width=1,
-            border_color="#7c2d12",
+            border_color="#c2410c",
             height=36,
             corner_radius=6,
             state="disabled",
             command=self._on_soft_stop
         )
-        self.btn_soft_stop.grid(row=0, column=2, sticky="ew", padx=6)
+        self.btn_soft_stop.grid(row=0, column=2, sticky="ew", padx=4)
 
-        # Botão Emergência: Derrubar Todas as Chamadas (Muted Red / Destructive)
+        # Botão Emergência: Derrubar Todas as Chamadas
         self.btn_kill = ctk.CTkButton(
             ctrl_inner,
             text="💥 DERRUBAR TODAS",
             font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#27272a",
-            hover_color="#3f1414",
+            fg_color="#383c4e",
+            hover_color="#991b1b",
             text_color="#f87171",
             border_width=1,
             border_color="#7f1d1d",
@@ -242,7 +236,7 @@ class TabConsole(ctk.CTkFrame):
             corner_radius=6,
             command=self._on_kill_all
         )
-        self.btn_kill.grid(row=0, column=3, sticky="ew", padx=6)
+        self.btn_kill.grid(row=0, column=3, sticky="ew", padx=4)
 
     def log(self, message: str, level: str = "INFO"):
         """Adiciona uma mensagem formatada ao console."""
@@ -258,6 +252,10 @@ class TabConsole(ctk.CTkFrame):
         self.log_textbox.insert("end", full_line)
         self.log_textbox.see("end")
         self.log_textbox.configure(state="disabled")
+
+    def append_log(self, message: str, level: str = "INFO"):
+        """Alias para log()."""
+        self.log(message, level)
 
     def update_metrics(self, stats: dict):
         """Atualiza os cartões de métricas na tela."""
@@ -285,11 +283,11 @@ class TabConsole(ctk.CTkFrame):
     def set_execution_state(self, running: bool):
         """Atualiza o estado dos botões conforme a execução."""
         if running:
-            self.btn_start.configure(state="disabled", text="⚡ TESTE EM EXECUÇÃO...", fg_color="#27272a", text_color="#71717a")
+            self.btn_start.configure(state="disabled", text="⚡ TESTE EM EXECUÇÃO...", fg_color="#383c4e", text_color="#94a3b8")
             self.btn_pause.configure(state="normal", text="⏸️ Pausar ('p')")
             self.btn_soft_stop.configure(state="normal")
         else:
-            self.btn_start.configure(state="normal", text="🚀 INICIAR TESTE DE CARGA", fg_color="#fafafa", text_color="#18181b")
+            self.btn_start.configure(state="normal", text="🚀 INICIAR TESTE DE CARGA", fg_color="#0284c7", text_color="#f1f5f9")
             self.btn_pause.configure(state="disabled", text="⏸️ Pausar ('p')")
             self.btn_soft_stop.configure(state="disabled")
 
@@ -301,10 +299,10 @@ class TabConsole(ctk.CTkFrame):
         ok = self.sipp_engine.pause_resume()
         if ok:
             if self.sipp_engine.is_paused:
-                self.btn_pause.configure(text="▶️ Retomar ('p')", text_color="#4ade80", border_color="#166534")
+                self.btn_pause.configure(text="▶️ Retomar ('p')", text_color="#4ade80", border_color="#15803d")
                 self.log("⏸️ Criação de novas chamadas pausada.", "WARNING")
             else:
-                self.btn_pause.configure(text="⏸️ Pausar ('p')", text_color="#fbbf24", border_color="#78350f")
+                self.btn_pause.configure(text="⏸️ Pausar ('p')", text_color="#fbbf24", border_color="#b45309")
                 self.log("▶️ Criação de chamadas retomada.", "INFO")
 
     def _on_soft_stop(self):

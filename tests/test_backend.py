@@ -11,25 +11,19 @@ from core.paths import (
     BASE_DIR,
     CORE_DIR,
     GUI_DIR,
-    BIN_DIR,
     SIPP_DIR,
     SCENARIOS_DIR,
     PCAP_DIR,
-    CONFIG_FILE,
-    ENV_FILE,
     ENV_EXAMPLE_FILE,
-    DEFAULT_SIPP_EXE,
     get_project_path,
     resolve_scenario,
     resolve_pcap,
-    ensure_env_file,
     get_subprocess_env
 )
 from core.config_manager import ConfigManager, DEFAULT_CONFIG
 from core.strategy_manager import StrategyManager
 from core.scenario_builder import ScenarioBuilder
 from core.sipp_downloader import SippLocator
-from core.sipp_engine import SippEngine
 from core.security import SecurityValidator
 
 
@@ -119,8 +113,8 @@ def test_strategy_manager():
     assert pool[0][1] == "pass"
     assert pool[0][2] in ["1001", "1002"]
     
-    token = StrategyManager.generate_session_token("L5")
-    assert token.startswith("L5_")
+    token = StrategyManager.generate_session_token("AGENT")
+    assert token.startswith("AGENT_")
     
     interval = StrategyManager.get_random_human_interval(200, 1500, 20)
     assert interval >= 50
@@ -144,7 +138,6 @@ def test_scenario_builder():
         content = f.read()
         assert 'min="15000"' in content
         assert 'max="45000"' in content
-        assert 'play_pcap_audio="pcap/custom_audio.pcap"' in content
         assert "@@" not in content
         
     os.remove(test_call_xml)
@@ -215,6 +208,7 @@ def test_gui_imports():
     from gui.tab_console import TabConsole
     from gui.tab_about import TabAbout
     from gui.main_window import MainWindow
+    assert all([ctk, LedIndicator, MetricCard, DestinationTable, TabRegister, TabStrategy, TabConsole, TabAbout, MainWindow])
     print("  [OK] Módulos da GUI importados com sucesso!")
 
 
@@ -241,11 +235,42 @@ def test_sip_client():
     assert params.get("realm") == "asterisk"
     assert params.get("nonce") == "5a6b7c"
     assert params.get("qop") == "auth"
-    print("  [OK] SipClient e Digest MD5 validados com sucesso!")
+
+    # Testa cálculo de Digest para INVITE (Chamada Única)
+    h_invite = SipClient.compute_digest_response(
+        username="1002",
+        realm="asterisk",
+        password="secretpassword",
+        method="INVITE",
+        uri="sip:22221864@192.168.1.100",
+        nonce="5a6b7c",
+        qop="auth",
+        nc="00000001",
+        cnonce="abcd1234"
+    )
+    assert len(h_invite) == 32
+    assert isinstance(h_invite, str)
+    print("  [OK] SipClient, Digest MD5 e Chamada Única validados com sucesso!")
+
+
+def test_version():
+    print("-> Testando core.version...")
+    from core.version import get_version_info, get_version, get_version_tag, get_app_title
+    info = get_version_info()
+    assert "version" in info
+    assert "release_tag" in info
+    assert info["major"] == 2
+    assert info["minor"] == 0
+    assert isinstance(info["build"], int)
+    assert get_version() == f"2.0.{info['build']}"
+    assert get_version_tag() == f"v2.0.{info['build']}"
+    assert "SIPp Load Tester Pro" in get_app_title()
+    print(f"  [OK] core.version validado! (Versão detectada: {get_version_tag()})")
 
 
 if __name__ == "__main__":
     test_paths()
+    test_version()
     test_config_manager()
     test_strategy_manager()
     test_scenario_builder()
@@ -254,3 +279,4 @@ if __name__ == "__main__":
     test_sip_client()
     test_gui_imports()
     print("\n[SUCCESS] TODOS OS TESTES PASSARAM COM SUCESSO!")
+

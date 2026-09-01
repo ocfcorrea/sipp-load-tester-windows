@@ -1,164 +1,284 @@
 # SIPp Load Tester Pro — Gerador de Chamadas Simultâneas para Windows
 
-Aplicação Desktop profissional para **Windows** desenvolvida para geração de **chamadas SIP simultâneas com áudio real RTP** (PCAP G.711 a-law), registro de ramais com autenticação Digest (401/407), testes de estresse, simulação de tráfego orgânico/humano e controle de tráfego em tempo real contra servidores **Asterisk**, PBX IP e Gateways SIP.
+[![Versão](https://img.shields.io/badge/Versão-v2.0_Pro-0284c7.svg)](#-versionamento-e-geração-de-releases-executáveis)
+[![Plataforma](https://img.shields.io/badge/Plataforma-Windows_10_|_11_|_Server-38bdf8.svg)](#-requisitos-de-sistema)
+[![Sinalização](https://img.shields.io/badge/SIP-RFC_3261_|_RFC_2617_MD5-10b981.svg)](#-como-funciona-a-transmissão-de-áudio-rtp-pcap)
+[![Segurança](https://img.shields.io/badge/Segurança-Zero_Leaks_with_.env-emerald.svg)](#-camada-de-segurança--isolamento-de-credenciais-env)
+[![Operação](https://img.shields.io/badge/Operação-100%25_Offline-purple.svg)](#-como-iniciar-no-windows)
 
-O aplicativo conta com uma interface gráfica moderna baseada no **Shadcn Luna Dark UI**, motor SIP nativo para Windows embutido (`bin/sipp/sipp.exe`), indicador de status de registro com LED luminoso, console de streaming em tempo real e camada de segurança e sanitização integrada.
+Aplicação Desktop profissional para **Windows** desenvolvida para geração de **chamadas SIP simultâneas de alta performance com áudio real RTP** (PCAP G.711 a-law), registro de ramais com autenticação Digest (RFC 3261 / RFC 2617), testes de estresse, simulação de tráfego orgânico/humano e controle de capacidade em tempo real contra servidores **Asterisk**, PBX IP, FreePBX, Issabel, OpenSIPS, Kamailio e Gateways SIP.
+
+O aplicativo conta com uma interface gráfica moderna em **Slate Dark UI**, motor SIP nativo em Python com **autenticação Digest MD5 integrada** e streaming RTP, indicador de status de registro com **LED luminoso**, console de eventos em tempo real, métricas contínuas e **100% de operação offline** no Windows.
 
 ---
 
-## 📋 Requisitos de Sistema & Pré-requisitos
+## 📋 Sumário
+1. [Requisitos de Sistema & Pré-requisitos](#-requisitos-de-sistema--pré-requisitos)
+2. [Como Iniciar no Windows](#-como-iniciar-no-windows)
+3. [Versionamento e Geração de Releases Executáveis (.EXE)](#-versionamento-e-geração-de-releases-executáveis-exe)
+4. [Guia Completo de Todas as Abas da Aplicação](#-guia-completo-de-todas-as-abas-da-aplicação)
+   - [Aba 1: Registro SIP & Conexão](#-aba-1-registro-sip--conexão)
+   - [Aba 2: Estratégia de Discagem, Pesos & Simulação Humana](#-aba-2-estratégia-de-discagem-pesos--simulação-humana)
+   - [Aba 3: Console em Tempo Real, Métricas & Controles](#-aba-3-console-em-tempo-real-métricas--controles)
+   - [Aba 4: Sobre & Topologia Técnica](#-aba-4-sobre--topologia-técnica)
+5. [Transmissão de Áudio RTP (PCAP)](#-transmissão-de-áudio-rtp-pcap)
+6. [Segurança & Isolamento de Credenciais (.env)](#-segurança--isolamento-de-credenciais-env)
+7. [Suíte de Testes Automatizados](#-suíte-de-testes-automatizados)
+8. [Perguntas Frequentes & Resolução de Problemas](#-perguntas-frequentes--resolução-de-problemas)
+
+---
+
+## 💻 Requisitos de Sistema & Pré-requisitos
 
 - **Sistema Operacional**: Windows 10, Windows 11 ou Windows Server (64-bit).
-- **Python**: **Python 3.9 ou superior** (Testado e homologado em **Python 3.10, 3.11, 3.12 e 3.13**).
-  > **Nota**: Ao instalar o Python no Windows, certifique-se de marcar a opção **"Add Python to PATH"**.
-- **Binários SIPp**: O repositório já inclui os binários portáteis e bibliotecas Cygwin necessárias em `bin/sipp/`.
-- **Áudio RTP**: Arquivos PCAP de áudio pré-configurados em `pcap/g711a.pcap`.
+- **Executável Standalone (.exe)**: **Não requer Python nem SIPp instalados**. Basta executar o binário compilado.
+- **Execução via Código Fonte**:
+  - Python 3.9+ (homologado em Python 3.10, 3.11, 3.12 e 3.13).
+  - Todas as dependências externas já vêm embutidas offline na pasta `lib/`.
+- **Áudio RTP**: Áudio pré-configurado em `pcap/g711a.pcap`.
 
 ---
 
-## 📸 Recursos Principais
+## 🚀 Como Iniciar no Windows
 
-- **100% Compatível com Windows**: Binário `sipp.exe` para Windows e bibliotecas de suporte Cygwin integradas na pasta `bin/sipp/` — sem necessidade de compilação ou instalações externas complexas.
-- **Gerenciador Central de Caminhos (`core/paths.py`)**: Resolução de caminhos dinâmicos absolutos baseados na raiz do projeto, garantindo funcionamento impecável independente de onde o terminal foi aberto.
-- **Interface Gráfica Moderna (CustomTkinter)**: Estética limpa e minimalista inspirada no tema Shadcn Luna, com suporte a DPI awareness no Windows e fontes nativas (`Segoe UI`, `Consolas`).
-- **Registro SIP com LED em Tempo Real**: Teste de registro Digest (401/407) com indicador LED colorido (Verde 200 OK com tempo de resposta em segundos, Amarelo em verificação, Vermelho em caso de falha/timeout).
-- **Separação de Ramal e Usuário de Autenticação**: Permite cenários em que o Ramal/Caller ID (`[$user]`) difere do Usuário de Autenticação Digest (`-au`).
-- **Configurações Avançadas de Rede**: Suporte a Porta Local SIP (`-p`), Porta Base de Mídia RTP (`-mp`) e Seletor dinâmico de Arquivos de Áudio PCAP (`play_pcap_audio`).
-- **Estratégias de Discagem & Simulação Humana**:
-  - **Regime Constante**: Mantém patamar de N chamadas ativas contínuas (`-l`).
-  - **Taxa de Reposição**: Controle de novas chamadas por período (`-r` e `-rp`).
-  - **Simulação Humana / Tráfego Orgânico**: Jitter aleatório entre discagens, chance de picos (burst %) e tokens de sessão dinâmicos.
-  - **Tabela Ponderada de Destinos**: Configure de 1 até 10 números com pesos relativos (1-100) e cálculo percentual automático em tempo real.
-- **Console & Métricas ao Vivo**:
-  - 5 Cartões de métricas (Simultâneas Ativas, Total Disparadas, Sucesso 200 OK, Falhas, CPS).
-  - Terminal de logs com exportação e cópia.
-  - Controles de Pausa (`'p'`), Parada Suave (`'q'`) e Encerramento de Emergência (Kill).
-- **Camada de Segurança (Zero Leaks)**: Sanitização estrita contra SIP/Command Injection, mascaramento de senhas em logs, proteção por `.env` e trituração/deleção segura de credenciais temporárias.
+### Opção 1: Executável Standalone Versionado (Distribuição / Produção)
+Se você já gerou o executável compilado ou recebeu o pacote pronto:
+- Dê um duplo clique em **`dist\SIPp_Load_Tester_Pro_v2.0.8.exe`** (ou `dist\SIPp_Load_Tester_Pro.exe`).
+- O aplicativo abre instantaneamente em qualquer máquina Windows sem necessidade de configurar nada.
 
 ---
 
-## 📂 Estrutura de Diretórios do Projeto
-
-```
-Chamadas_Externa_Simultaneas_SIPp/
-├── app.py                      # Ponto de entrada principal da aplicação GUI
-├── iniciar_app.bat             # Inicializador inteligente com auto-setup do .venv
-├── instalar_dependencias.bat   # Script dedicado para instalação/reparo de dependências
-├── requirements.txt            # Dependências Python com faixas compatíveis (Python 3.9+)
-├── config.json                 # Configurações salvas da UI (sanitizado, Zero Leak)
-├── .env                        # Credenciais e segredos locais (ignorado no git)
-├── .env.example                # Modelo de variáveis de ambiente com documentação
-├── .gitignore                  # Higiene de repositório e proteção de credenciais
-├── README.md                   # Documentação completa do projeto
-├── run.sh                      # Script utilitário em Bash com leitura dinâmica de .env
-│
-├── bin/                        # Binários e bibliotecas de execução
-│   └── sipp/                   # SIPp nativo para Windows (sipp.exe + DLLs Cygwin)
-│
-├── scenarios/                  # Cenários e templates XML do SIPp
-│   ├── register.xml            # Cenário de registro Digest (401/407)
-│   ├── call.xml.template       # Template de chamada com suporte a @@PCAP_FILE@@
-│   └── call.xml                # Cenário gerado dinamicamente para execução
-│
-├── pcap/                       # Arquivos de áudio RTP
-│   ├── g711a.pcap              # Áudio G.711 a-law (8kHz)
-│   └── dtmf_2833_*.pcap        # Tons DTMF RFC 2833 (0-9, *, #)
-│
-├── core/                       # Regras de negócio e motor backend
-│   ├── paths.py                # Gerenciador centralizado de caminhos e ambiente de DLLs
-│   ├── config_manager.py       # Gerenciamento de configurações e perfis com suporte .env
-│   ├── scenario_builder.py     # Construtor dinâmico de cenários XML e CSVs
-│   ├── strategy_manager.py     # Distribuição ponderada e simulação humana
-│   ├── security.py             # Validações de segurança, sanitização e mascaramento
-│   ├── sipp_engine.py          # Orquestração assíncrona de subprocessos do SIPp
-│   └── sipp_downloader.py      # Localizador inteligente do sipp.exe e checagem de versão
-│
-├── lib/                        # Dependências Python embutidas (100% Offline / Zero-Install)
-├── wheels/                     # Pacotes .whl offline pré-baixados (Python 3.9 a 3.13)
-│
-├── gui/                        # Interface gráfica Desktop (CustomTkinter)
-│   ├── main_window.py          # Janela principal e coordenação de abas
-│   ├── tab_register.py         # Aba 1: Conexão SIP, Portas/Mídia, Registro com LED e Chamada Única
-│   ├── tab_strategy.py         # Aba 2: Estratégia de Discagem, Pesos e Modo Randômico
-│   ├── tab_console.py          # Aba 3: Console em tempo real, Métricas e Controles de Carga
-│   ├── tab_about.py            # Aba 4: Sobre a aplicação, Topologia e Fluxos SIP
-│   └── components/             # Componentes modulares (LED, Métricas, Tabela de Destinos)
-│
-├── docs/                       # Documentação adicional (PDFs)
-└── tests/                      # Suíte de testes automatizados do backend
-    └── test_backend.py         # Testes de integração de caminhos, isolamento e cenários
-```
-
----
-
-## 🚀 Como Iniciar em uma Nova Máquina Windows (100% Offline)
-
-O aplicativo é **totalmente autocontido e não requer acesso à internet** na máquina de destino:
-
-### Opção 1: Inicialização em 1 Clique (Recomendado)
+### Opção 2: Inicialização em 1 Clique via Script Batch (Desenvolvimento / Ambiente Local)
 Dê um duplo clique no arquivo:
 - **`iniciar_app.bat`**
 
 O script:
-1. Detecta o Python instalado no Windows.
-2. Executa a aplicação imediatamente utilizando as bibliotecas pré-embutidas em `lib/` ou instaladas localmente a partir de `wheels/` (sem precisar baixar nada da internet).
-3. Abre a interface gráfica com DPI awareness ajustado.
+1. Detecta o Python instalado no sistema.
+2. Injeta as bibliotecas da pasta `lib/`.
+3. Ajusta o DPI awareness no Windows para renderização perfeita em monitores Full HD e 4K.
+4. Abre a interface gráfica imediatamente.
 
 ---
 
-### Opção 2: Instalação Offline de Dependências
-Caso queira configurar o ambiente virtual `.venv` localmente sem internet:
-1. Dê um duplo clique no arquivo **`instalar_dependencias.bat`** (ele utiliza os arquivos `.whl` da pasta `wheels/`).
-2. Em seguida, inicie o app com **`iniciar_app.bat`**.
-
----
-
-### Opção 3: Pelo Terminal do Windows (PowerShell / CMD)
+### Opção 3: Inicialização via Terminal (PowerShell / Prompt de Comando)
 ```powershell
-# 1. Clonar o repositório
-git clone <URL_DO_REPOSITORIO>
-cd Chamadas_Externa_Simultaneas_SIPp
+# 1. Navegue até a pasta do projeto
+cd "e:\00 - DEV\Chamadas_Externa_Simultaneas_SIPp"
 
-# 2. Criar e ativar o ambiente virtual
-python -m venv .venv
-.\.venv\Scripts\activate
-
-# 3. Instalar as dependências
-pip install -r requirements.txt
-
-# 4. Criar o arquivo de credenciais local
-Copy-Item .env.example .env
-
-# 5. Executar a aplicação
+# 2. Inicie a aplicação
 python app.py
 ```
 
 ---
 
-### Opção 4: Executar a Suíte de Testes Automatizados
-Para validar se todos os módulos, caminhos e regras de segurança estão 100% operacionais:
+## 📦 Versionamento e Geração de Releases Executáveis (.EXE)
+
+O projeto conta com um pipeline inteligente de versionamento semântico integrado ao Git:
+
+### Como Funciona a Release Numérica por Commit
+1. O módulo central [`core/version.py`](file:///e:/00%20-%20DEV/Chamadas_Externa_Simultaneas_SIPp/core/version.py) consulta a contagem total de commits do repositório Git (`git rev-list --count HEAD`).
+2. A versão é formatada automaticamente como: `v2.0.<NUMERO_DO_COMMIT>` (exemplo: commit 8 gera `v2.0.8`).
+3. Toda vez que você faz um novo commit no Git e compila o projeto, a versão numérica sobe automaticamente sem precisar editar nenhum arquivo manual.
+
+---
+
+### 🔨 Passo a Passo para Gerar um Novo Executável Versionado:
+
+#### Método Automático (Recomendado):
+Dê um duplo clique no arquivo:
+- **`gerar_executavel.bat`**
+
+O script executa automaticamente as seguintes etapas:
+1. Verifica o Python e a presença do PyInstaller.
+2. Extrai e grava a versão atual em `version.json`.
+3. Executa o PyInstaller com a spec [`SIPp_Load_Tester_Pro.spec`](file:///e:/00%20-%20DEV/Chamadas_Externa_Simultaneas_SIPp/SIPp_Load_Tester_Pro.spec), embutindo todas as dependências, cenários XML, áudios PCAP e motor SIP em um único arquivo standalone.
+4. Gera dois binários na pasta `dist\`:
+   - **`dist\SIPp_Load_Tester_Pro_v<VERSAO>.exe`**: Cópia versionada da release para histórico e controle de versão (ex: `SIPp_Load_Tester_Pro_v2.0.8.exe`).
+   - **`dist\SIPp_Load_Tester_Pro.exe`**: Executável principal padrão.
+
+---
+
+#### Método Manual via Terminal:
 ```powershell
-python tests/test_backend.py
+# 1. Salva e registra a versão atual do commit
+python -c "from core.version import save_version_file; print(save_version_file())"
+
+# 2. Executa a compilação com PyInstaller
+pyinstaller --noconfirm SIPp_Load_Tester_Pro.spec
+
+# 3. Cria a cópia versionada da release
+python -c "import shutil, os; from core.version import get_version_tag; tag = get_version_tag(); shutil.copy2('dist/SIPp_Load_Tester_Pro.exe', f'dist/SIPp_Load_Tester_Pro_{tag}.exe')"
 ```
 
 ---
 
-## 🌐 Topologia de Rede & Fluxo de Comunicação
+## 📖 Guia Completo de Todas as Abas da Aplicação
+
+---
+
+### 📡 Aba 1: Registro SIP & Conexão
+
+Esta aba é o centro de parametrização de conectividade com o seu PBX Asterisk, além de oferecer diagnósticos rápidos com LED e Chamada Única.
 
 ```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│ 📡 PARÂMETROS DE CONEXÃO & IDENTIDADE SIP                                              │
+│ • Alvo Asterisk IP / FQDN: 192.168.0.1     │ • Porta SIP: 5060  | Transporte: UDP (u1)  │
+│ • Domínio SIP: 192.168.0.1                 │ • IP Local: (vazio = autodetectar)         │
+│ • Ramal (Identidade): 1001                 │ • Usuário Digest (Auth User): 1001         │
+│ • Senha do Ramal: ••••••••                 │ • Executável SIPp: bin/sipp/sipp.exe       │
+├────────────────────────────────────────────┴───────────────────────────────────────────┤
+│ 🎧 PORTAS LOCAIS & MÍDIA RTP / ÁUDIO PCAP                                              │
+│ • Porta Local SIP (-p): (opcional/vazio)   │ • Porta Base RTP (-mp): 10000              │
+│ • Arquivo de Áudio RTP: pcap/g711a.pcap                                                │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│ 🚦 STATUS DO REGISTRO SIP (TEMPO REAL)                                                 │
+│ 🟢 LED: 200 OK — Registrado (0.01s)                                                    │
+│ [ ⚡ Testar Registro do Ramal ]   [ 💾 Salvar Parâmetros de Conexão ]                    │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│ 📞 TESTE DE CHAMADA ÚNICA (DIAGNÓSTICO)                                                │
+│ • Número de Destino de Teste: 22223333     │ [ ▶️ Disparar Chamada ]  [ ⏹️ Encerrar ]   │
+│ Status: 200 OK — Em conversação (transmitindo áudio RTP)                               │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### 📌 Explicação de Cada Campo da Aba 1:
+
+1. **Alvo Asterisk IP / FQDN**:
+   - Endereço IPv4 ou nome DNS do servidor Asterisk/PBX (padrão de teste: `192.168.0.1`).
+2. **Porta SIP**:
+   - Porta onde o Asterisk escuta sinalização SIP (padrão mundial `5060`).
+3. **Transporte**:
+   - `u1 (UDP)`: Transporte padrão mais utilizado em telefonia IP (menor latência).
+   - `t1 (TCP)`: Transporte orientado a conexão (para redes que exigem pacotes TCP).
+4. **Domínio SIP (Identidade)**:
+   - Domínio da identidade SIP presente nos cabeçalhos `From`, `To` e `Request-URI` (padrão: `192.168.0.1`).
+5. **IP Local (Interface)**:
+   - Deixe em branco para autodetecção automática da placa de rede ativa, ou fixe o IP local da sua máquina.
+6. **Ramal e Usuário de Autenticação**:
+   - **Ramal**: Número de identificação do ramal (ex: `1001`).
+   - **Usuário Digest**: Nome de usuário exigido pelo Asterisk no desafio 401/407.
+7. **Senha do Ramal**:
+   - Senha secreta do ramal. Armazenada de forma protegida no `.env` (Zero Leaks).
+8. **Porta Base Mídia RTP (`-mp`)**:
+   - Porta base para os canais de áudio RTP (padrão `10000`).
+9. **Número de Destino de Teste (Chamada Única)**:
+   - Número de extensão ou URA para teste prévio de áudio (padrão: `22223333`).
+
+#### 💡 Ações da Aba 1:
+- **⚡ Testar Registro do Ramal**:
+  - Envia pacote `REGISTER`, recebe desafio `401 Unauthorized`, calcula o hash MD5 e envia o `REGISTER` autenticado.
+  - **LED Luminoso**:
+    - 🟢 **Verde**: Registrado com sucesso (`200 OK`) com latência em segundos.
+    - 🟡 **Amarelo**: Enviando REGISTER / aguardando resposta.
+    - 🔴 **Vermelho**: Falha de autenticação ou PBX inacessível.
+- **▶️ Disparar Chamada Única**:
+  - Disca para o número de teste `22223333`, autentica, recebe `200 OK` e inicia o streaming contínuo de áudio RTP do PCAP para teste de voz.
+
+---
+
+### 🎲 Aba 2: Estratégia de Discagem, Pesos & Simulação Humana
+
+Nesta aba você configura a inteligência do teste: quantas chamadas manter simultaneamente, quanto tempo cada uma dura, a velocidade de disparo e a distribuição entre múltiplos destinos.
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│ ⚙️ CAPACIDADE & DURAÇÃO DAS CHAMADAS                                                    │
+│ • Simultâneas (-l): 30                     │ • Total (-m) [0=Ilimitado]: 0              │
+│ • Duração Mínima: 60000 ms (60s)           │ • Duração Máxima: 70000 ms (70s)           │
+│ [ ] Duração Fixa (ignora teto máximo e fixa no valor mínimo)                           │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│ 🎲 MODO DE DISCAGEM & PADRÃO DE DISPARO                                                │
+│ [ ⚡ Taxa Constante (Rate/Period) ]        │ [ 👥 Simulação Humana (Orgânico/Randômico) ]│
+│ • Intervalo Mín: 200ms | Intervalo Máx: 1500ms | Chance de Pico: 15% | Prefixo: AGENT_ │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│ 🎯 TABELA DE DESTINOS & PRIORIDADES DE DISCAGEM (1 A 10)                               │
+│ [x] 1. Número: 22223333 | Descrição: Ex. Texto para Identificar | Peso: 10 | Tráfego: 100%│
+│ [ ] 2. Número: 22223333 | Descrição: Ex. Texto para Identificar | Peso: 10 | Tráfego: 0.0%│
+│ [ ] 3. Número: 22223333 | Descrição: Ex. Texto para Identificar | Peso: 10 | Tráfego: 0.0%│
+│ [ ] 4 até 10...                                                                        │
+│ [ ⚖️ Distribuir Pesos ]   [ 🧹 Limpar Desmarcados ]   [ 💾 Salvar Estratégia ]          │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### 📌 Explicação Detalhada de Cada Parâmetro da Aba 2:
+
+1. **Simultâneas (`-l`)**:
+   - É o **teto máximo de chamadas ativas conectadas ao mesmo tempo** no Asterisk.
+2. **Total (`-m`)**:
+   - Quantidade total acumulada de chamadas a gerar antes de encerrar o teste (`0` = Ilimitado / contínuo).
+3. **Duração Mínima e Máxima (ms)**:
+   - Define a faixa de tempo (em milissegundos) em que cada chamada permanecerá conectada no Asterisk. Cada ligação sorteia uma duração aleatória dentro dessa faixa para simular comportamento realista.
+4. **Checkbox "Duração Fixa"**:
+   - Se marcada, todas as chamadas durarão rigorosamente o tempo mínimo estipulado.
+5. **Modos de Discagem**:
+   - ⚡ **Taxa Constante**: Dispara em cadência uniforme (`-r` chamadas por período `-rp`).
+   - 👥 **Simulação Humana**: Introduz variações realistas, intervalos orgânicos e chances de rajadas (*bursts*).
+6. **Tabela de 10 Destinos Ponderados**:
+   - Suporta até 10 destinos com números, descrições e pesos individuais (1 a 100).
+   - O tráfego percentual é recalculado e exibido em tempo real.
+   - Padrão inicial: 10 linhas configuradas com `22223333` e `Ex. Texto para Identificar`, com **apenas a 1ª linha marcada como ativa**.
+
+---
+
+### 🖥️ Aba 3: Console em Tempo Real, Métricas & Controles
+
+Painel de comando operacional do teste de carga e geração de simultâneas.
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│ 📊 PAINEL DE MÉTRICAS EM TEMPO REAL                                                    │
+│ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐   │
+│ │ SIMULTÂNEAS  │ │  DISPARADAS  │ │  ATENDIDAS   │ │    FALHAS    │ │     CPS      │   │
+│ │    30 / 30   │ │     180      │ │     150      │ │      0       │ │   1.5 cps    │   │
+│ └──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘   │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│ 💻 TERMINAL DE LOGS E EVENTOS SIP EM TEMPO REAL                                        │
+│ [00:48:10] [HEADER] 🚀 INICIANDO TESTE DE CARGA (MOTOR SIP PRO MD5)                   │
+│ [00:48:10] [INFO]   Alvo PBX: 192.168.0.1:5060 (UDP) | Domínio: 192.168.0.1            │
+│ [00:48:10] [INFO]   Teto de Simultâneas: 30 | Duração: 60000ms a 70000ms               │
+│ [00:48:10] [INFO] ➔ [DISPARO] Chamada #1 para 22223333 (Alvo: 30 simultâneas)          │
+│ [00:48:10] [SUCCESS] 🎉 [PBX] Chamada #1 ➔ 22223333 atendida (200 OK)! Mantida por 64s │
+│ [00:48:10] [INFO] 🎵 Transmitindo áudio G.711a do PCAP para 192.168.0.1:10000...      │
+│ [00:48:12] [INFO] 📊 [PAINEL] Simultâneas: 30/30 | Disparadas: 30 | Atendidas: 30      │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│ [ 🚀 INICIAR TESTE DE CARGA ] [ ⏸️ PAUSAR ] [ 🛑 PARAR SUAVE ] [ 💥 DERRUBAR TODAS ]   │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### 📌 Cartões de Métricas:
+- 📞 **Simultâneas**: Canais conectados simultaneamente sobre o limite configurado (ex: `30 / 30`).
+- 📈 **Disparadas**: Total acumulado de ligações enviadas.
+- ✅ **Atendidas**: Ligações atendidas com sucesso (`200 OK`).
+- ❌ **Falhas**: Ligações recusadas (403, 404, 486, 503, etc.).
+- ⚡ **CPS**: Novas chamadas por segundo em tempo real.
+
+#### 🎮 Controles Operacionais:
+- **🚀 INICIAR TESTE DE CARGA**: Inicia a geração contínua de chamadas.
+- **⏸️ PAUSAR / RETOMAR**: Congela novos disparos mantendo as chamadas ativas conectadas.
+- **🛑 PARAR SUAVE**: Não abre novas chamadas e aguarda as ativas encerrarem normalmente.
+- **💥 DERRUBAR TODAS (Kill Switch)**: Derruba todas as chamadas ativas instantaneamente via pacote `BYE`.
+- **Botão de Emergência no Cabeçalho**: Disponível em qualquer aba para encerramento imediato.
+
+---
+
+### 📖 Aba 4: Sobre & Topologia Técnica
+
+Apresenta detalhes da versão ativa, topologia de sinalização SIP e fluxo de áudio RTP:
+
+```text
 ┌─────────────────────────────────────────┐                ┌─────────────────────────────────────────┐
-│          CLIENTE GERADOR DE CARGA       │                │          SERVIDOR PBX IP / ASTERISK     │
+│        CLIENTE GERADOR DE CARGA         │                │        SERVIDOR PBX IP / ASTERISK       │
 │        (SIPp Load Tester Pro GUI)       │                │                                         │
 │                                         │                │                                         │
 │  ┌───────────────────────────────────┐  │                │  ┌───────────────────────────────────┐  │
-│  │ Core Engine (Python 3.9 - 3.13)   │  │                │  │ PJSIP / SIP Core Engine           │  │
+│  │ Core Engine & SipClient (Python)  │  │                │  │ PJSIP / SIP Core Engine           │  │
 │  │ - Config & Strategy Manager       │  │                │  │ - Endpoint Registry (AOR)         │  │
 │  │ - Security & Masking Layer        │  │                │  │ - Digest Authentication (401/407) │  │
-│  │ - Centralized Paths (core/paths)  │  │                │  │ - RTP Media Handler               │  │
 │  └─────────────────┬─────────────────┘  │                │  └─────────────────▲─────────────────┘  │
 │                    │                    │                │                    │                    │
 │  ┌─────────────────▼─────────────────┐  │  SIP (UDP/TCP) │  ┌─────────────────┴─────────────────┐  │
-│  │ SIPp Process (bin/sipp/sipp.exe)  ├─┼────────────────┼─►│ Porta SIP 5060                    │  │
+│  │ SIPp Process / Native SipClient   ├─┼────────────────┼─►│ Porta SIP 5060                    │  │
 │  │ - REGISTER & INVITE Scenarios     │  │  Sinalização   │  │ (From, To, Contact, CSeq, Auth)   │  │
 │  └─────────────────┬─────────────────┘  │                │  └─────────────────┬─────────────────┘  │
 │                    │                    │                │                    │                    │
@@ -171,85 +291,53 @@ python tests/test_backend.py
 
 ---
 
-## ⚙️ Detalhes dos Binários SIPp & DLLs Cygwin no Windows
+## 🎙️ Transmissão de Áudio RTP (`.pcap`)
 
-O projeto acompanha um binário `sipp.exe` compilado com a camada de emulação Cygwin na pasta `bin/sipp/`.
-- **Resolução Automática de DLLs**: O módulo [`core/paths.py`](file:///e:/00%20-%20DEV/Chamadas_Externa_Simultaneas_SIPp/core/paths.py) injeta dinamicamente o diretório `bin/sipp` na variável de ambiente `PATH` durante a execução de subprocessos, garantindo que o Windows sempre localize as DLLs `cygwin1.dll`, `cygssl-0.9.8.dll`, `cygcrypto-0.9.8.dll` e `cygncurses-10.dll` sem necessidade de alterar as variáveis de ambiente globais do sistema.
-- **Detecção de SIPp do Sistema**: A classe [`SippLocator`](file:///e:/00%20-%20DEV/Chamadas_Externa_Simultaneas_SIPp/core/sipp_downloader.py) também suporta automaticamente binários modernos do SIPp instalados via Chocolatey (`choco install sipp`), Cygwin 64-bit (`C:\cygwin64\bin\sipp.exe`), `C:\Program Files\SIPp\sipp.exe` ou WSL2 (`wsl sipp`).
-
----
-
-## 📖 Guia de Uso das 4 Abas
-
-### 🔐 Aba 1: Registro & Conexão SIP
-- **Alvo Asterisk IP / FQDN**: Endereço de destino na rede (ex: `192.168.1.100`).
-- **Porta SIP**: Porta do servidor (padrão `5060`).
-- **Transporte**: Selecione `u1 (UDP)` ou `t1 (TCP)`.
-- **Domínio SIP**: Domínio da identidade SIP que aparece nos cabeçalhos `From`, `To` e Request-URI.
-- **Ramal (Caller ID)**: Número/identidade do ramal (`[$user]`).
-- **Usuário de Autenticação (Auth User)**: Usuário enviado no desafio Digest (`-au`).
-- **Senha do Ramal**: Senha utilizada no cálculo MD5 da autenticação digest (`-ap`).
-- **Portas Locais & Range de Mídia RTP**:
-  - **Porta Local SIP (`-p`)**: Fixe uma porta local (ex: `5060`, `5062`) ou deixe em branco para alocação dinâmica.
-  - **Porta Base Mídia RTP (`-mp`)**: Porta inicial para o range de sockets RTP (padrão `6000` ou `10000`).
-  - **Arquivo de Áudio PCAP**: Caminho do arquivo `.pcap` tocado no início da chamada.
-- **Botão "⚡ Testar Registro do Ramal"**: Envia um `REGISTER` com suporte a desafio Digest e atualiza o **LED** luminoso com o resultado (200 OK em X.XXs ou código de erro).
-- **Chamada Única Rápida**: Permite discar para um destino específico e desligar a qualquer momento para validar áudio e sinalização.
-
-### 🎯 Aba 2: Estratégia de Discagem & Destinos Ponderados
-- **Simultâneas (`-l`)**: Patamar constante de chamadas ativas que o SIPp mantém simultaneamente.
-- **Total (`-m`)**: Quantidade total de chamadas a gerar (`0` = Ilimitado / contínuo até você parar).
-- **Duração Mínima / Máxima (ms)**: Range de tempo em que cada chamada permanece conectada via `<pause distribution="uniform">`.
-- **Duração Fixa**: Checkbox que trava a duração no valor mínimo.
-- **Modos de Discagem**:
-  - **Taxa Constante (Rate/Period)**: Taxa de novas chamadas por período em milissegundos (`-r` e `-rp`).
-  - **Simulação Humana (Orgânico / Randômico)**: Introduz variações realistas de intervalo entre discagens, chance de picos percentuais e prefixos de token para simulação de múltiplos atendentes.
-- **Tabela de Destinos (1 a 10)**:
-  - Habilite os destinos desejados com caixas de seleção.
-  - Ajuste a prioridade/peso de cada destino (1 a 100).
-  - O aplicativo calcula e exibe a porcentagem exata de tráfego que cada número receberá.
-
-### 🖥️ Aba 3: Console & Métricas ao Vivo
-- **Indicadores em Tempo Real**:
-  - 📞 **Simultâneas Ativas**: Chamadas conectadas no momento sobre o teto configurado.
-  - 📈 **Total Disparadas**: Quantidade acumulada de chamadas enviadas.
-  - ✅ **Atendidas (200 OK)**: Chamadas completadas com sucesso.
-  - ❌ **Falhas / Timeouts**: Erros de conexão, ocupado (486), rejeições ou indisponibilidade (503).
-  - ⚡ **Taxa Instantânea**: Chamadas por segundo (CPS) em tempo real.
-- **Terminal de Logs**: Exibe todas as mensagens trocadas com o processo SIPp, com botões para **Limpar**, **Copiar** e **Exportar** para `.log`.
-- **Barra de Controle**:
-  - 🚀 **Iniciar Teste de Carga**: Dispara o teste conforme a estratégia configurada.
-  - ⏸️ **Pausar ('p')**: Congela a criação de novas chamadas sem derrubar as existentes.
-  - 🛑 **Parar Suave ('q')**: Para de gerar chamadas e aguarda as ativas encerrarem naturalmente.
-  - 💥 **Derrubar Todas**: Força o encerramento imediato de todos os processos `sipp.exe` ativos.
-
-### 📖 Aba 4: Sobre & Topologia
-- Visualização completa da topologia de rede, diagrama de sequência SIP detalhado, boas práticas para Asterisk e especificações técnicas da versão.
+1. **Negociação SDP**: Ao receber o `200 OK` do Asterisk, o cliente analisa o cabeçalho SDP e extrai o IP e a porta de áudio abertos pelo PBX (`c=IN IP4` e `m=audio`).
+2. **Cache em RAM**: O arquivo `pcap/g711a.pcap` é decodificado e mantido em memória RAM.
+3. **Injeção RTP com Cadência de 20ms**: Os pacotes de voz G.711 a-law (PCMA 8kHz) são transmitidos a cada 20ms (50 pacotes/segundo), garantindo áudio fluído sem sobrecarga de CPU.
 
 ---
 
-## 🛡️ Camada de Segurança & Proteção de Segredos (.env)
+## 🛡️ Segurança & Isolamento de Credenciais (.env)
 
-O projeto adota o padrão ouro de isolamento de credenciais e sanitização contínua:
-
-1. **Isolamento de Credenciais via `.env` (Zero Leaks)**:
-   - Senhas e credenciais confidenciais são mantidas exclusivamente no arquivo local `.env` (bloqueado pelo `.gitignore`).
-   - O arquivo `config.json` armazena apenas preferências de discagem, pesos e tempos, mantendo a chave `"senha": ""` sempre vazia para evitar vazamentos acidentais em commits do Git.
-   - O repositório disponibiliza o `.env.example` para que novos ambientes possam ser configurados rapidamente:
-     ```powershell
-     copy .env.example .env
-     ```
-2. **Prevenção contra Injeção de Cabeçalho SIP**:
-   - Validação estrita pela classe `SecurityValidator` (`core/security.py`) contra quebras de linha CRLF (`\r`, `\n`) e injeções de comandos nos campos de Host, Porta e Ramal.
-3. **Mascaramento Automático em Logs**:
-   - Todas as senhas e parâmetros `-ap` são mascarados com `******` nas saídas do console em tempo real.
-4. **Trituração Segura de Temporários**:
-   - Arquivos CSV de credenciais gerados temporariamente para o SIPp são sobrescritos com zeros binários antes de serem excluídos do disco.
-5. **Execução Segura de Subprocessos**:
-   - Chamadas ao processo do SIPp utilizam estritamente listas de argumentos sanitizadas, sem `shell=True`.
+- **Zero Leaks**: As senhas de ramais são armazenadas no arquivo local `.env` (ignorado pelo Git). O arquivo `config.json` armazena apenas preferências de interface mantendo `"senha": ""` sempre em branco.
+- **Sanitização SIP**: Prevenção contra injeção de caracteres de quebra de linha CRLF (`\r`, `\n`) em campos de texto.
+- **Mascaramento em Logs**: Senhas são mascaradas automaticamente como `******` em todas as telas de log.
 
 ---
 
-## 📄 Licença
+## 🧪 Suíte de Testes Automatizados
 
-Este software é distribuído sob licença proprietária/MIT para fins de homologação e testes de capacidade em infraestruturas de telecomunicações.
+Para validar todos os módulos, caminhos, segurança, cálculos de Digest MD5 e integridade da GUI:
+```powershell
+python tests/test_backend.py
+```
+
+Saída esperada:
+```text
+-> Testando core.paths...                  [OK] core.paths validado!
+-> Testando core.version...                [OK] core.version validado! (Versão detectada: v2.0.8)
+-> Testando ConfigManager e .env...        [OK] ConfigManager e isolamento .env validados com sucesso!
+-> Testando StrategyManager...             [OK] StrategyManager validado!
+-> Testando ScenarioBuilder...             [OK] ScenarioBuilder validado!
+-> Testando SecurityValidator...           [OK] SecurityValidator validado com sucesso!
+-> Testando SippLocator e binário Win...   [OK] SippLocator encontrou executável SIPp!
+-> Testando SipClient e Digest MD5...      [OK] SipClient, Digest MD5 e Chamada Única validados com sucesso!
+-> Testando imports da GUI...              [OK] Módulos da GUI importados com sucesso!
+
+[SUCCESS] TODOS OS TESTES PASSARAM COM SUCESSO!
+```
+
+---
+
+## ❓ Perguntas Frequentes & Resolução de Problemas
+
+### 1. "Como gerar uma release versionada para distribuir aos clientes?"
+Execute o arquivo `gerar_executavel.bat`. Ele criará o executável standalone na pasta `dist/` com a tag de versão numérica (ex: `SIPp_Load_Tester_Pro_v2.0.8.exe`). Você pode copiar esse arquivo para qualquer computador com Windows sem instalar nada.
+
+### 2. "Como funciona o loop contínuo de chamadas simultâneas?"
+Se você configurar **30 Simultâneas** e **Total = 0**, o aplicativo manterá **30 chamadas ativas conectadas o tempo todo**. Quando uma chamada atingir sua duração (ex: 60s) e desligar, outra chamada será iniciada imediatamente no mesmo instante para repor a vaga, mantendo o PBX permanentemente sob a carga desejada.
+
+### 3. "O aplicativo funciona sem acesso à internet?"
+**Sim, 100% offline.** Todas as bibliotecas Python e arquivos de mídia necessários já estão embutidos.

@@ -6,10 +6,9 @@ import os
 import shutil
 import subprocess
 import urllib.request
-import zipfile
 from typing import Tuple, Optional
 
-from core.paths import SIPP_DIR, DEFAULT_SIPP_EXE, BASE_DIR, get_subprocess_env
+from core.paths import DEFAULT_SIPP_EXE, BASE_DIR, get_subprocess_env
 
 
 class SippLocator:

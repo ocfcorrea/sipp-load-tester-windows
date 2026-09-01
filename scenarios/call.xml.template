@@ -2,18 +2,18 @@
 <!DOCTYPE scenario SYSTEM "sipp.dtd">
 
 <!-- ============================================================
-     call.xml
-     UAC que faz chamadas SIP com suporte a autenticação Digest e áudio RTP.
-     Fluxo com branching dinâmico:
-       INVITE -> se 401/407: ACK -> INVITE com auth -> 200 OK -> ACK -> RTP -> BYE
-              -> se 200 OK direto: ACK -> RTP -> BYE
+     call.xml.template - SIPp Load Tester Pro
+     Cenário UAC de alta performance com controle de simultaneidade e branching seguro.
+     Fluxos:
+       - Sucesso: INVITE -> (100/180/183) -> 200 OK -> ACK -> Pausa Uniforme -> BYE -> 200 OK
+       - Erro/Desafio do PBX: INVITE -> (401/403/404/486/503) -> ACK -> Pausa Segura -> Fim (Evita loop infinito)
      ============================================================ -->
 
-<scenario name="UAC chamada com audio RTP">
+<scenario name="SIPp Load Tester Pro - UAC Call">
 
   <Global variables="domain,user,dest"/>
 
-  <!-- 1) INVITE inicial -->
+  <!-- 1) INVITE Inicial com SDP de Mídia G.711a (PCMA) -->
   <send retrans="500">
     <![CDATA[
 
@@ -44,16 +44,30 @@
     ]]>
   </send>
 
-  <!-- Respostas ao primeiro INVITE -->
+  <!-- 2) Respostas Provisórias do PBX -->
   <recv response="100" optional="true"/>
   <recv response="180" optional="true"/>
   <recv response="183" optional="true"/>
-  <recv response="407" auth="true" optional="true" next="send_auth"/>
-  <recv response="401" auth="true" optional="true" next="send_auth"/>
+
+  <!-- 3) Respostas de Erro ou Desafio (evita loop desenfreado) -->
+  <recv response="401" optional="true" next="handle_err"/>
+  <recv response="407" optional="true" next="handle_err"/>
+  <recv response="403" optional="true" next="handle_err"/>
+  <recv response="404" optional="true" next="handle_err"/>
+  <recv response="486" optional="true" next="handle_err"/>
+  <recv response="480" optional="true" next="handle_err"/>
+  <recv response="500" optional="true" next="handle_err"/>
+  <recv response="503" optional="true" next="handle_err"/>
+
+  <!-- 4) Resposta de Atendimento (200 OK) -->
   <recv response="200" rtd="true" next="call_connected"/>
 
-  <!-- 2) Branch de Autenticação Digest (quando exigido pelo PBX) -->
-  <label id="send_auth"/>
+  <!-- ========================================================= -->
+  <!-- RAMO 1: CHAMADA ATENDIDA (200 OK)                          -->
+  <!-- ========================================================= -->
+  <label id="call_connected"/>
+  
+  <!-- Envia ACK de confirmação -->
   <send>
     <![CDATA[
 
@@ -69,70 +83,10 @@
     ]]>
   </send>
 
-  <send retrans="500">
-    <![CDATA[
+  <!-- Mantém a chamada ativa pelo tempo configurado (sustenta simultâneas) -->
+  <pause distribution="uniform" min="@@DURACAO_MIN_MS@@" max="@@DURACAO_MAX_MS@@"/>
 
-      INVITE sip:[$dest]@[$domain] SIP/2.0
-      Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
-      Max-Forwards: 70
-      From: "[$user]" <sip:[$user]@[$domain]>;tag=[call_number]
-      To: <sip:[$dest]@[$domain]>
-      Call-ID: [call_id]
-      CSeq: 2 INVITE
-      Contact: <sip:[$user]@[local_ip]:[local_port];transport=[transport]>
-      [authentication]
-      User-Agent: SIPp-Load-Tester-Pro
-      Content-Type: application/sdp
-      Content-Length: [len]
-
-      v=0
-      o=sipp [call_number] [call_number] IN IP[local_ip_type] [local_ip]
-      s=SIPp-Load-Tester-Pro
-      c=IN IP[media_ip_type] [media_ip]
-      t=0 0
-      m=audio [media_port] RTP/AVP 8 0 101
-      a=rtpmap:8 PCMA/8000
-      a=rtpmap:0 PCMU/8000
-      a=rtpmap:101 telephone-event/8000
-      a=fmtp:101 0-15
-      a=sendrecv
-
-    ]]>
-  </send>
-
-  <recv response="100" optional="true"/>
-  <recv response="180" optional="true"/>
-  <recv response="183" optional="true"/>
-  <recv response="200" rtd="true"/>
-
-  <!-- 3) Ponto de convergência: Chamada Estabelecida (200 OK) -->
-  <label id="call_connected"/>
-  <send>
-    <![CDATA[
-
-      ACK sip:[$dest]@[$domain] SIP/2.0
-      Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
-      Max-Forwards: 70
-      From: "[$user]" <sip:[$user]@[$domain]>;tag=[call_number]
-      To: <sip:[$dest]@[$domain]>[peer_tag_param]
-      Call-ID: [call_id]
-      CSeq: 2 ACK
-      Content-Length: 0
-
-    ]]>
-  </send>
-
-  <!-- 4) Playback de Áudio PCAP e Duração -->
-  <nop>
-    <action>
-      <exec play_pcap_audio="@@PCAP_FILE@@"/>
-    </action>
-  </nop>
-
-  <pause distribution="uniform"
-         min="@@DURACAO_MIN_MS@@" max="@@DURACAO_MAX_MS@@"/>
-
-  <!-- 5) Finalização da Chamada -->
+  <!-- Desconecta a chamada (BYE) -->
   <send retrans="500">
     <![CDATA[
 
@@ -142,14 +96,43 @@
       From: "[$user]" <sip:[$user]@[$domain]>;tag=[call_number]
       To: <sip:[$dest]@[$domain]>[peer_tag_param]
       Call-ID: [call_id]
-      CSeq: 3 BYE
+      CSeq: 2 BYE
+      User-Agent: SIPp-Load-Tester-Pro
       Content-Length: 0
 
     ]]>
   </send>
 
-  <recv response="200" crlf="true"/>
+  <!-- Confirmação 200 OK do BYE -->
+  <recv response="200" crlf="true" next="end_scenario"/>
 
+  <!-- ========================================================= -->
+  <!-- RAMO 2: RECUSA / DESAFIO / ERRO DO PBX                    -->
+  <!-- ========================================================= -->
+  <label id="handle_err"/>
+  
+  <!-- Envia ACK ao erro para fechar a transação SIP -->
+  <send>
+    <![CDATA[
+
+      ACK sip:[$dest]@[$domain] SIP/2.0
+      Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
+      Max-Forwards: 70
+      From: "[$user]" <sip:[$user]@[$domain]>;tag=[call_number]
+      To: <sip:[$dest]@[$domain]>[peer_tag_param]
+      Call-ID: [call_id]
+      CSeq: 1 ACK
+      Content-Length: 0
+
+    ]]>
+  </send>
+
+  <!-- Pausa preventiva de 2.5s para não sobrecarregar o PBX em caso de recusa -->
+  <pause milliseconds="2500"/>
+
+  <label id="end_scenario"/>
+
+  <!-- Estatísticas de Resposta e Duração -->
   <ResponseTimeRepartition value="10, 20, 30, 40, 50, 100, 150, 200, 500, 1000"/>
   <CallLengthRepartition value="10000, 15000, 20000, 25000, 30000"/>
 

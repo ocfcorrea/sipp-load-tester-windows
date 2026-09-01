@@ -1,5 +1,5 @@
 """
-Metric Card Component - Cartão minimalista estilo Shadcn Luna com cores neutras.
+Metric Card Component - Cartão de métricas estilo Slate / Dark Navy Suave.
 """
 
 from typing import Any
@@ -7,7 +7,7 @@ import customtkinter as ctk
 
 
 class MetricCard(ctk.CTkFrame):
-    """Cartão de exibição de indicador numérico com estética Shadcn Luna neutra."""
+    """Cartão de exibição de indicador numérico com estética Slate moderna."""
 
     def __init__(
         self,
@@ -15,16 +15,16 @@ class MetricCard(ctk.CTkFrame):
         title: str,
         value: str = "0",
         unit: str = "",
-        accent_color: str = "#3f3f46",
+        accent_color: str = "#38bdf8",
         icon: str = "📊",
         **kwargs
     ):
         super().__init__(
             master,
             corner_radius=8,
-            fg_color="#18181b",
+            fg_color="#272a37",
             border_width=1,
-            border_color="#27272a",
+            border_color="#383c4e",
             **kwargs
         )
 
@@ -45,7 +45,7 @@ class MetricCard(ctk.CTkFrame):
             self.header_frame,
             text=icon,
             font=ctk.CTkFont(size=13),
-            text_color="#a1a1aa"
+            text_color="#94a3b8"
         )
         self.icon_label.pack(side="left", padx=(0, 6))
 
@@ -53,7 +53,7 @@ class MetricCard(ctk.CTkFrame):
             self.header_frame,
             text=title,
             font=ctk.CTkFont(size=11, weight="bold"),
-            text_color="#71717a"
+            text_color="#94a3b8"
         )
         self.title_label.pack(side="left")
 
@@ -65,7 +65,7 @@ class MetricCard(ctk.CTkFrame):
             self.value_frame,
             text=value,
             font=ctk.CTkFont(size=20, weight="bold"),
-            text_color="#f4f4f5"
+            text_color="#f1f5f9"
         )
         self.value_label.pack(side="left")
 
@@ -74,7 +74,7 @@ class MetricCard(ctk.CTkFrame):
                 self.value_frame,
                 text=f" {unit}",
                 font=ctk.CTkFont(size=11),
-                text_color="#71717a"
+                text_color="#64748b"
             )
             self.unit_label.pack(side="left", padx=(4, 0))
 

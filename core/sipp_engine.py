@@ -1,48 +1,51 @@
 """
-SIPp Engine - Gerencia a execução dos processos do SIPp em threads de segundo plano.
-Inclui validações de segurança, mascaramento de senhas em logs, streaming de saída e métricas em tempo real.
+SIPp Engine - Motor de Geração de Carga e Simultaneidade SIP com Autenticação Digest MD5 Nativa.
+Suporta alta performance multithread, controle estrito de simultaneidade (-l), taxa de disparo (-r, -rp),
+pesos ponderados de destino, simulação randômica humana e métricas em tempo real sem dependência de OpenSSL externo.
 """
 
 import os
 import subprocess
 import threading
 import time
+import random
 from typing import Callable, Optional, Dict, Any
 
-from core.paths import (
-    BASE_DIR,
-    get_project_path,
-    resolve_scenario,
-    resolve_pcap,
-    get_subprocess_env,
-    DEFAULT_SIPP_EXE
-)
+from core.paths import get_project_path
 from core.sip_client import SipClient
-from core.scenario_builder import ScenarioBuilder
 from core.strategy_manager import StrategyManager
 from core.sipp_downloader import SippLocator
 from core.security import SecurityValidator
 
 
 class SippEngine:
-    """Motor de orquestração e monitoramento seguro do SIPp."""
+    """Motor de orquestração e geração de carga SIP de alta performance."""
 
     def __init__(self):
-        self.process: Optional[subprocess.Popen] = None
-        self.single_call_process: Optional[subprocess.Popen] = None
         self.is_running = False
         self.is_paused = False
         self.is_single_call_running = False
-        
+
+        self.load_stop_event = threading.Event()
+        self.single_call_stop_event = threading.Event()
+
         self.stats_thread: Optional[threading.Thread] = None
-        self.log_thread: Optional[threading.Thread] = None
-        
+        self.dispatcher_thread: Optional[threading.Thread] = None
+
+        # Lock para controle seguro de concorrência
+        self.lock = threading.Lock()
+
         # Métricas em tempo real
         self.active_calls = 0
         self.total_calls = 0
         self.successful_calls = 0
         self.failed_calls = 0
         self.current_cps = 0.0
+
+        # Processos legados (para compatibilidade)
+        self.process: Optional[subprocess.Popen] = None
+        self.single_call_process: Optional[subprocess.Popen] = None
+        self.background_pid: Optional[int] = None
 
     def get_sipp_binary(self, configured_path: str = "") -> str:
         """Localiza o binário do SIPp ou retorna o configurado."""
@@ -60,7 +63,7 @@ class SippEngine:
     ):
         """
         Executa teste de registro SIP do ramal com autenticação Digest (RFC 3261 / RFC 2617).
-        Utiliza o motor nativo SipClient em Python (independente de OpenSSL externo e com suporte a MD5 nativo).
+        Utiliza o motor nativo SipClient em Python (suporte nativo a MD5).
         """
         def _worker():
             host = config.get("asterisk_ip", "").strip()
@@ -126,138 +129,83 @@ class SippEngine:
         log_callback: Callable[[str, str], None],
         status_callback: Callable[[str], None]
     ):
-        """Inicia 1 chamada de teste para o destino especificado."""
+        """Inicia 1 chamada de teste para o destino especificado usando SipClient nativo com Digest MD5."""
         if self.is_single_call_running:
             log_callback("[CHAMADA ÚNICA] Já existe uma chamada única em andamento.", "WARNING")
             return
 
         def _worker():
             self.is_single_call_running = True
+            self.single_call_stop_event.clear()
             status_callback("Iniciando Chamada Única...")
-            
+
             host = config.get("asterisk_ip", "").strip()
-            port = config.get("asterisk_port", "5060")
+            port = int(config.get("asterisk_port", 5060) or 5060)
             ramal = config.get("ramal", "").strip()
             auth_user = config.get("usuario_auth", "").strip() or ramal
             senha = config.get("senha", "")
             domain = config.get("sip_domain", host).strip() or host
             transport = config.get("transport", "u1")
             local_ip = config.get("local_ip", "").strip()
+            media_port = int(config.get("media_port", 6000) or 6000)
+            pcap_file = config.get("pcap_file", "pcap/g711a.pcap").strip() or "pcap/g711a.pcap"
 
             val_dest_ok, dest_clean = SecurityValidator.validate_destination_number(destination)
             if not val_dest_ok:
-                log_callback(f"[CHAMADA ÚNICA] Erro: {dest_clean}", "ERROR")
+                log_callback(f"[CHAMADA ÚNICA] Erro no destino: {dest_clean}", "ERROR")
                 self.is_single_call_running = False
                 status_callback("Destino Inválido")
                 return
 
-            sipp_bin = self.get_sipp_binary(config.get("sipp_path", ""))
-            target = f"{host}:{port}"
+            log_callback(f"[CHAMADA ÚNICA] Ligando para {dest_clean} via ramal {ramal} no PBX {host}:{port}...", "INFO")
 
-            pcap_file = config.get("pcap_file", "pcap/g711a.pcap").strip() or "pcap/g711a.pcap"
-
-            # Gera XML com 30s de duração
-            single_xml = get_project_path("single_call.xml")
-            ScenarioBuilder.generate_single_call_xml("call.xml.template", single_xml, duracao_ms=30000, pcap_file=pcap_file)
-
-            # Gera CSV (field0=auth_user, field1=senha, field2=dest_clean)
-            csv_path = get_project_path("single_credenciais.csv")
-            ScenarioBuilder.generate_credentials_csv([(auth_user, senha, dest_clean)], output_path=csv_path)
-
-            cmd = [
-                sipp_bin,
-                target,
-                "-sf", single_xml,
-                "-inf", csv_path,
-                "-t", transport,
-                "-set", "domain", domain,
-                "-set", "user", ramal,
-                "-set", "dest", dest_clean,
-                "-m", "1",
-                "-r", "1",
-                "-trace_err"
-            ]
-            if local_ip:
-                cmd.extend(["-i", local_ip])
-
-            local_port = config.get("local_port", "").strip()
-            if local_port:
-                val_lp_ok, lp_num = SecurityValidator.validate_port(local_port)
-                if val_lp_ok:
-                    cmd.extend(["-p", str(lp_num)])
-
-            media_port = config.get("media_port", "").strip()
-            if media_port:
-                val_mp_ok, mp_num = SecurityValidator.validate_port(media_port)
-                if val_mp_ok:
-                    cmd.extend(["-mp", str(mp_num)])
-
-            log_callback(f"[CHAMADA ÚNICA] Ligando para {dest_clean} via ramal {ramal}...", "INFO")
-            
             try:
-                self.single_call_process = subprocess.Popen(
-                    cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    stdin=subprocess.PIPE,
-                    text=True,
-                    bufsize=1,
-                    cwd=BASE_DIR,
-                    env=get_subprocess_env(),
-                    creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
+                ok, code, msg = SipClient.single_call(
+                    host=host,
+                    port=port,
+                    ramal=ramal,
+                    auth_user=auth_user,
+                    password=senha,
+                    destination=dest_clean,
+                    domain=domain,
+                    transport=transport,
+                    duration_sec=30.0,
+                    local_ip=local_ip,
+                    media_port=media_port,
+                    pcap_file=pcap_file,
+                    log_callback=log_callback,
+                    status_callback=status_callback,
+                    stop_event=self.single_call_stop_event
                 )
-                
-                status_callback(f"📞 Chamada Ativa ➔ {dest_clean}")
-
-                # Monitora saída
-                while self.single_call_process and self.single_call_process.poll() is None:
-                    line = self.single_call_process.stdout.readline()
-                    if line:
-                        masked = SecurityValidator.mask_credentials(line.strip(), senha)
-                        log_callback(f"[CHAMADA ÚNICA] {masked}", "DEBUG")
-                    time.sleep(0.1)
-
-                rc = self.single_call_process.returncode if self.single_call_process else 0
-                if rc == 0:
-                    log_callback(f"[CHAMADA ÚNICA] Chamada para {dest_clean} encerrada normalmente.", "SUCCESS")
+                if ok:
+                    log_callback(f"[CHAMADA ÚNICA] {msg}", "SUCCESS")
                 else:
-                    log_callback(f"[CHAMADA ÚNICA] Chamada finalizada com código {rc}.", "WARNING")
-
+                    log_callback(f"[CHAMADA ÚNICA] Falha na chamada: {msg}", "ERROR")
             except Exception as e:
-                log_callback(f"[CHAMADA ÚNICA] Erro: {e}", "ERROR")
+                log_callback(f"[CHAMADA ÚNICA] Erro inesperado: {e}", "ERROR")
             finally:
                 self.is_single_call_running = False
-                self.single_call_process = None
-                status_callback("Chamada Finalizada")
-                for f_tmp in [single_xml, csv_path]:
-                    SecurityValidator.secure_delete_file(f_tmp)
+                status_callback("Pronto")
 
         t = threading.Thread(target=_worker, daemon=True)
         t.start()
 
     def stop_single_call(self):
         """Desliga a chamada única em andamento."""
-        if self.single_call_process and self.single_call_process.poll() is None:
-            try:
-                self.single_call_process.terminate()
-                time.sleep(0.3)
-                if self.single_call_process.poll() is None:
-                    self.single_call_process.kill()
-            except Exception:
-                pass
+        self.single_call_stop_event.set()
         self.is_single_call_running = False
 
     # -------------------------------------------------------------------------
-    # 3. TESTE DE CARGA (SIMULTÂNEAS / ESTRATÉGIA)
+    # 3. TESTE DE CARGA (SIMULTÂNEAS / ESTRATÉGIA) - MOTOR NATIVO MD5
     # -------------------------------------------------------------------------
     def start_load_test(
         self,
         config: Dict[str, Any],
         log_callback: Callable[[str, str], None],
         stats_callback: Callable[[Dict[str, Any]], None],
-        finished_callback: Callable[[int], None]
+        finished_callback: Optional[Callable[[int], None]] = None
     ) -> bool:
-        """Inicia o teste de carga completo com SIPp."""
+        """Inicia o teste de carga completo multithread nativo com Digest MD5."""
         if self.is_running:
             log_callback("[TESTE] Teste de carga já está em execução.", "WARNING")
             return False
@@ -269,29 +217,38 @@ class SippEngine:
             log_callback(f"[TESTE] ERRO de validação: {msg}", "ERROR")
             return False
 
-        # Prepara cenários e CSV
-        dur_min = int(config.get("duracao_min_ms", 10000))
-        dur_max = int(config.get("duracao_max_ms", 60000))
-        dur_fixa = bool(config.get("duracao_fixa", False))
-        pcap_file = config.get("pcap_file", "pcap/g711a.pcap").strip() or "pcap/g711a.pcap"
-
-        call_xml_path = get_project_path("call.xml")
-        ok, err = ScenarioBuilder.generate_call_xml(
-            template_path="call.xml.template",
-            output_path=call_xml_path,
-            duracao_min_ms=dur_min,
-            duracao_max_ms=dur_max,
-            duracao_fixa=dur_fixa,
-            pcap_file=pcap_file
-        )
-        if not ok:
-            log_callback(f"[TESTE] ERRO ao gerar call.xml: {err}", "ERROR")
-            return False
-
-        # Gera pool de credenciais/destinos ponderados (field0=auth_user, field1=senha, field2=dest)
+        host = config.get("asterisk_ip", "").strip()
+        port = int(config.get("asterisk_port", 5060) or 5060)
         ramal = config.get("ramal", "").strip()
         auth_user = config.get("usuario_auth", "").strip() or ramal
         senha = config.get("senha", "")
+        domain = config.get("sip_domain", host).strip() or host
+        transport = config.get("transport", "u1")
+        pcap_file = config.get("pcap_file", "pcap/g711a.pcap").strip() or "pcap/g711a.pcap"
+
+        # Auto-detecção de IPv4 local
+        local_ip = config.get("local_ip", "").strip()
+        if not local_ip:
+            try:
+                import socket
+                s_probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                s_probe.connect((host, port if port > 0 else 5060))
+                local_ip = s_probe.getsockname()[0]
+                s_probe.close()
+            except Exception:
+                local_ip = "127.0.0.1"
+
+        simultaneas = int(config.get("simultaneas", 100))
+        total_limit = int(config.get("total", 0))
+        dur_min_ms = int(config.get("duracao_min_ms", 10000))
+        dur_max_ms = int(config.get("duracao_max_ms", 60000))
+        dur_fixa = bool(config.get("duracao_fixa", False))
+        dial_mode = config.get("dial_mode", "rate")
+
+        rate = int(config.get("rate", 50))
+        rate_period_ms = int(config.get("rate_period", 1000))
+
+        # Gera pool ponderado de destinos
         pool = StrategyManager.generate_weighted_destination_pool(
             destinations=destinations,
             ramal=auth_user,
@@ -299,221 +256,214 @@ class SippEngine:
             pool_size=1000,
             token_prefix=config.get("human_token_prefix", "AGENT_")
         )
-        
-        # Modo SEQUENTIAL ou RANDOM
-        csv_mode = "RANDOM" if config.get("dial_mode") == "human_random" else "SEQUENTIAL"
-        cred_csv_path = get_project_path("credenciais.csv")
-        ScenarioBuilder.generate_credentials_csv(pool, output_path=cred_csv_path, mode=csv_mode)
-
-        # Monta comando SIPp
-        sipp_bin = self.get_sipp_binary(config.get("sipp_path", ""))
-        host = config.get("asterisk_ip", "").strip()
-        port = config.get("asterisk_port", "5060")
-        target = f"{host}:{port}"
-        domain = config.get("sip_domain", host).strip() or host
-        transport = config.get("transport", "u1")
-        local_ip = config.get("local_ip", "").strip()
-        simultaneas = int(config.get("simultaneas", 100))
-        total = int(config.get("total", 0))
-        rate = int(config.get("rate", 50))
-        rate_period = int(config.get("rate_period", 1000))
-
-        # Pega primeiro destino do pool para a variável [$dest]
-        primeiro_dest = pool[0][2] if pool else "22221864"
-
-        cmd = [
-            sipp_bin,
-            target,
-            "-sf", call_xml_path,
-            "-inf", cred_csv_path,
-            "-t", transport,
-            "-set", "domain", domain,
-            "-set", "user", ramal,
-            "-set", "dest", primeiro_dest,
-            "-l", str(simultaneas),
-            "-r", str(rate),
-            "-rp", str(rate_period),
-            "-trace_err",
-            "-trace_stat",
-            "-stf", get_project_path("stats.csv"),
-            "-fd", "1s"
-        ]
-
-        if total > 0:
-            cmd.extend(["-m", str(total)])
-
-        if local_ip:
-            cmd.extend(["-i", local_ip])
-
-        local_port = config.get("local_port", "").strip()
-        if local_port:
-            val_lp_ok, lp_num = SecurityValidator.validate_port(local_port)
-            if val_lp_ok:
-                cmd.extend(["-p", str(lp_num)])
-
-        media_port = config.get("media_port", "").strip()
-        if media_port:
-            val_mp_ok, mp_num = SecurityValidator.validate_port(media_port)
-            if val_mp_ok:
-                cmd.extend(["-mp", str(mp_num)])
 
         log_callback("==================================================", "HEADER")
-        log_callback("🚀 INICIANDO TESTE DE CARGA SIPP", "HEADER")
-        log_callback(f"  Alvo: {target} ({transport}) | Domínio: {domain}", "INFO")
-        log_callback(f"  Ramal: {ramal} (Auth: {auth_user}) | Teto Simultâneas: {simultaneas} | Total: {'Ilimitado' if total == 0 else total}", "INFO")
-        log_callback(f"  Taxa: {rate} chamadas / {rate_period}ms | Duração: {dur_min}-{dur_max}ms", "INFO")
-        log_callback(f"  Destinos Ativos ({len(config.get('destinations', []))} configurados):", "INFO")
-        for d in config.get("destinations", []):
+        log_callback("🚀 INICIANDO TESTE DE CARGA (MOTOR SIP PRO MD5)", "HEADER")
+        log_callback(f"  Alvo PBX: {host}:{port} ({transport.upper()}) | Domínio: {domain}", "INFO")
+        log_callback(f"  IP Local de Envio: {local_ip} | Ramal: {ramal} (Auth: {auth_user})", "INFO")
+        log_callback(f"  Teto de Simultâneas (-l): {simultaneas} | Total: {'Ilimitado' if total_limit == 0 else total_limit}", "INFO")
+        log_callback(f"  Modo: {'Simulação Humana Orgânica' if dial_mode == 'human_random' else f'Taxa Constante ({rate} ch/{rate_period_ms}ms)'}", "INFO")
+        log_callback(f"  Duração da Chamada: {dur_min_ms}ms{' (Fixa)' if dur_fixa else f' a {dur_max_ms}ms'}", "INFO")
+        log_callback(f"  Áudio RTP PCAP: {pcap_file}", "INFO")
+        log_callback(f"  Destinos Ativos ({len(destinations)} configurados):", "INFO")
+        for d in destinations:
             if d.get("enabled") and d.get("number"):
-                log_callback(f"    - {d.get('number')} ({d.get('description', 'Sem desc')}) [Peso: {d.get('weight')}]", "INFO")
+                log_callback(f"    - Destino: {d.get('number')} ({d.get('description', 'Sem desc')}) [Peso: {d.get('weight')}]", "INFO")
         log_callback("==================================================", "HEADER")
 
-        try:
-            self.process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                stdin=subprocess.PIPE,
-                text=True,
-                bufsize=1,
-                cwd=BASE_DIR,
-                env=get_subprocess_env(),
-                creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
-            )
-            self.is_running = True
-            self.is_paused = False
+        # Reseta métricas
+        with self.lock:
+            self.active_calls = 0
+            self.total_calls = 0
+            self.successful_calls = 0
+            self.failed_calls = 0
+            self.current_cps = 0.0
 
-            # Thread para ler stdout
-            def _read_stdout():
-                while self.process and self.process.poll() is None:
-                    line = self.process.stdout.readline()
-                    if line:
-                        clean = line.strip()
-                        if clean:
-                            masked = SecurityValidator.mask_credentials(clean, senha)
-                            log_callback(masked, "STDOUT")
+        self.is_running = True
+        self.is_paused = False
+        self.load_stop_event.clear()
+
+        # Thread de cada chamada individual
+        def _call_worker(call_num: int, dest_number: str, duration_sec: float, media_port: int):
+            with self.lock:
+                self.active_calls += 1
+
+            try:
+                ok, code, msg = SipClient.single_call(
+                    host=host,
+                    port=port,
+                    ramal=ramal,
+                    auth_user=auth_user,
+                    password=senha,
+                    destination=dest_number,
+                    domain=domain,
+                    transport=transport,
+                    duration_sec=duration_sec,
+                    local_ip=local_ip,
+                    media_port=media_port,
+                    pcap_file=pcap_file,
+                    stop_event=self.load_stop_event
+                )
+                with self.lock:
+                    if ok:
+                        self.successful_calls += 1
+                    else:
+                        self.failed_calls += 1
+
+                if ok:
+                    log_callback(f"🎉 [PBX] Chamada #{call_num} ➔ {dest_number} atendida (200 OK)! Mantida por {duration_sec:.1f}s", "SUCCESS")
+                else:
+                    log_callback(f"⚠️ [PBX] Chamada #{call_num} ➔ {dest_number} falhou (SIP {code}: {msg})", "WARNING")
+
+            except Exception as e:
+                with self.lock:
+                    self.failed_calls += 1
+                log_callback(f"❌ [CHAMADA #{call_num}] Erro: {e}", "ERROR")
+            finally:
+                with self.lock:
+                    self.active_calls -= 1
+
+        # Thread despachante (mantém a simultaneidade constante)
+        def _dispatcher_loop():
+            call_counter = 0
+            base_media_port = int(config.get("media_port", 6000) or 6000)
+
+            while self.is_running and not self.load_stop_event.is_set():
+                if self.is_paused:
+                    time.sleep(0.2)
+                    continue
+
+                with self.lock:
+                    current_active = self.active_calls
+                    current_total = self.total_calls
+
+                # Verifica se atingiu limite total
+                if total_limit > 0 and current_total >= total_limit:
+                    if current_active == 0:
+                        break
+                    time.sleep(0.2)
+                    continue
+
+                # Se há vaga para novas chamadas até o teto de simultâneas
+                if current_active < simultaneas:
+                    call_counter += 1
+                    with self.lock:
+                        self.total_calls += 1
+
+                    # Seleciona destino ponderado
+                    selected_item = random.choice(pool) if pool else (auth_user, senha, "1500")
+                    dest_num = selected_item[2]
+
+                    # Calcula duração sorteada em segundos
+                    if dur_fixa or dur_min_ms >= dur_max_ms:
+                        dur_sec = max(1.0, dur_min_ms / 1000.0)
+                    else:
+                        dur_sec = random.uniform(dur_min_ms / 1000.0, dur_max_ms / 1000.0)
+
+                    media_p = base_media_port + ((call_counter % 2000) * 2)
+
+                    log_callback(f"➔ [DISPARO] Chamada #{call_counter} para {dest_num} (Alvo: {simultaneas} simultâneas)", "INFO")
+
+                    t = threading.Thread(
+                        target=_call_worker,
+                        args=(call_counter, dest_num, dur_sec, media_p),
+                        daemon=True
+                    )
+                    t.start()
+
+                    # Controle de cadência
+                    if dial_mode == "human_random":
+                        h_min = int(config.get("human_min_interval_ms", 200))
+                        h_max = int(config.get("human_max_interval_ms", 1500))
+                        h_burst = int(config.get("human_burst_chance", 15))
+                        interval_ms = StrategyManager.get_random_human_interval(h_min, h_max, h_burst)
+                        time.sleep(max(0.01, interval_ms / 1000.0))
+                    else:
+                        interval_sec = (rate_period_ms / 1000.0) / max(1, rate)
+                        time.sleep(max(0.01, interval_sec))
+                else:
                     time.sleep(0.05)
 
-            self.log_thread = threading.Thread(target=_read_stdout, daemon=True)
-            self.log_thread.start()
-
-            # Thread para monitorar estatísticas do stats.csv
-            def _monitor_stats():
-                stats_file = get_project_path("stats.csv")
-                while self.is_running and self.process and self.process.poll() is None:
-                    stats = self._parse_stats_csv(stats_file, simultaneas)
-                    if stats:
-                        stats_callback(stats)
-                    time.sleep(1.0)
-
-                rc = self.process.returncode if self.process else 0
-                self.is_running = False
-                log_callback(f"🛑 Teste de carga finalizado (Código de saída: {rc}).", "SUCCESS" if rc == 0 else "WARNING")
-                finished_callback(rc)
-                SecurityValidator.secure_delete_file(cred_csv_path)
-
-            self.stats_thread = threading.Thread(target=_monitor_stats, daemon=True)
-            self.stats_thread.start()
-
-            return True
-        except Exception as e:
             self.is_running = False
-            log_callback(f"[TESTE] ERRO ao iniciar SIPp: {e}", "ERROR")
-            SecurityValidator.secure_delete_file(cred_csv_path)
-            return False
 
-    def _parse_stats_csv(self, file_path: str, max_simultaneas: int) -> Optional[Dict[str, Any]]:
-        """Lê o arquivo stats.csv gerado pelo SIPp para extrair métricas."""
-        if not os.path.exists(file_path):
-            return None
+            log_callback("🛑 Teste de carga finalizado.", "INFO")
+            if finished_callback:
+                finished_callback(0)
 
-        try:
-            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-                lines = [line.strip() for line in f if line.strip()]
-                if len(lines) < 2:
-                    return None
+        # Thread de monitoramento de métricas
+        def _metrics_reporter():
+            last_total = 0
+            last_time = time.time()
+            last_heartbeat = time.time()
 
-                header = [h.strip() for h in lines[0].split(";")]
-                last_row = [v.strip() for v in lines[-1].split(";")]
+            while self.is_running:
+                time.sleep(0.5)
+                now = time.time()
+                dt = now - last_time
+
+                with self.lock:
+                    cur_active = self.active_calls
+                    cur_total = self.total_calls
+                    cur_succ = self.successful_calls
+                    cur_fail = self.failed_calls
+
+                cps = round((cur_total - last_total) / dt, 1) if dt > 0 else 0.0
+                last_total = cur_total
+                last_time = now
 
                 stats = {
-                    "active_calls": 0,
-                    "max_simultaneas": max_simultaneas,
-                    "total_calls": 0,
-                    "successful_calls": 0,
-                    "failed_calls": 0,
-                    "cps": 0.0
+                    "active_calls": cur_active,
+                    "max_simultaneas": simultaneas,
+                    "total_calls": cur_total,
+                    "successful_calls": cur_succ,
+                    "failed_calls": cur_fail,
+                    "cps": max(0.0, cps)
                 }
+                stats_callback(stats)
 
-                for i, col in enumerate(header):
-                    if i < len(last_row):
-                        val_str = last_row[i]
-                        col_lower = col.lower()
-                        
-                        try:
-                            if "currentcall" in col_lower or "active" in col_lower:
-                                stats["active_calls"] = int(val_str)
-                            elif "totalcallcreated" in col_lower or "totalcall" in col_lower:
-                                stats["total_calls"] = int(val_str)
-                            elif "successfulcall" in col_lower or "successful" in col_lower:
-                                stats["successful_calls"] = int(val_str)
-                            elif "failedcall" in col_lower or "failed" in col_lower:
-                                stats["failed_calls"] = int(val_str)
-                            elif "callrate" in col_lower or "cps" in col_lower:
-                                stats["cps"] = float(val_str.replace(",", "."))
-                        except ValueError:
-                            pass
+                # Batimento periódico a cada 3 segundos
+                if now - last_heartbeat >= 3.0:
+                    last_heartbeat = now
+                    log_callback(
+                        f"📊 [PAINEL] Simultâneas: {cur_active}/{simultaneas} | "
+                        f"Disparadas: {cur_total} | "
+                        f"Atendidas (200 OK): {cur_succ} | "
+                        f"Falhas: {cur_fail} | "
+                        f"Taxa: {cps:.1f} cps",
+                        "INFO"
+                    )
 
-                return stats
-        except Exception:
-            return None
+        self.dispatcher_thread = threading.Thread(target=_dispatcher_loop, daemon=True)
+        self.dispatcher_thread.start()
+
+        self.stats_thread = threading.Thread(target=_metrics_reporter, daemon=True)
+        self.stats_thread.start()
+
+        return True
 
     # -------------------------------------------------------------------------
     # 4. CONTROLES EM TEMPO REAL (Pausar, Parar Suave, Kill)
     # -------------------------------------------------------------------------
-    def send_key(self, key: str) -> bool:
-        """Envia um comando de tecla para o processo SIPp via stdin."""
-        if self.process and self.process.poll() is None and self.process.stdin:
-            try:
-                self.process.stdin.write(key)
-                self.process.stdin.flush()
-                return True
-            except Exception:
-                return False
-        return False
+    def pause_resume(self) -> bool:
+        """Pausa ou retoma a criação de novas chamadas mantendo as ativas."""
+        if not self.is_running:
+            return False
+        self.is_paused = not self.is_paused
+        return True
 
     def soft_stop(self) -> bool:
-        """Envia tecla 'q' para saída suave (aguarda chamadas ativas terminarem)."""
-        return self.send_key("q")
-
-    def pause_resume(self) -> bool:
-        """Envia tecla 'p' para pausar ou retomar criação de chamadas."""
-        ok = self.send_key("p")
-        if ok:
-            self.is_paused = not self.is_paused
-        return ok
+        """Saída suave: interrompe criação de novas chamadas e aguarda as ativas encerrarem."""
+        if not self.is_running:
+            return False
+        self.is_running = False
+        return True
 
     def kill_all(self):
-        """Derruba todas as chamadas imediatamente e força o encerramento do SIPp."""
+        """Derruba todas as chamadas imediatamente."""
         self.is_running = False
         self.is_single_call_running = False
-
-        if self.process:
-            try:
-                self.process.terminate()
-                time.sleep(0.2)
-                if self.process.poll() is None:
-                    self.process.kill()
-            except Exception:
-                pass
-            self.process = None
-
-        if self.single_call_process:
-            try:
-                self.single_call_process.kill()
-            except Exception:
-                pass
-            self.single_call_process = None
+        self.load_stop_event.set()
+        self.single_call_stop_event.set()
 
         # No Windows, garante que nenhum sipp.exe ficou órfão
         if os.name == 'nt':
@@ -527,5 +477,9 @@ class SippEngine:
                 pass
 
         # Limpa temporários
-        for f in ["credenciais.csv", "single_credenciais.csv", "credenciais_reg.csv"]:
-            SecurityValidator.secure_delete_file(get_project_path(f))
+        import glob
+        for f in glob.glob(os.path.join(BASE_DIR, "call_*_shortmessages.log")) + \
+                 glob.glob(os.path.join(BASE_DIR, "call_*_errors.log")) + \
+                 ["credenciais.csv", "single_credenciais.csv", "credenciais_reg.csv", "stats.csv"]:
+            target_path = f if os.path.isabs(f) else get_project_path(f)
+            SecurityValidator.secure_delete_file(target_path)

@@ -5,7 +5,7 @@ Substitui variáveis de template e gera arquivos de credenciais compatíveis.
 
 import os
 from typing import List, Tuple
-from core.paths import resolve_scenario, resolve_pcap, SCENARIOS_DIR, PCAP_DIR, BASE_DIR
+from core.paths import resolve_scenario
 
 
 class ScenarioBuilder:

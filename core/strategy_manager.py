@@ -62,7 +62,7 @@ class StrategyManager:
         ramal: str,
         senha: str,
         pool_size: int = 1000,
-        token_prefix: str = "L5_"
+        token_prefix: str = "AGENT_"
     ) -> List[Tuple[str, str, str]]:
         """
         Gera uma lista de tuplas (ramal, senha, destino) para o arquivo CSV de credenciais do SIPp,
@@ -73,7 +73,7 @@ class StrategyManager:
             if d.get("enabled", False) and str(d.get("number", "")).strip()
         ]
         if not active:
-            return [(ramal, senha, "22221864")]
+            return [(ramal, senha, "22223333")]
 
         numbers = [str(d.get("number")).strip() for d in active]
         weights = [max(1, int(d.get("weight", 1))) for d in active]

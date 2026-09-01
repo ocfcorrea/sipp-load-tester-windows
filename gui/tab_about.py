@@ -1,9 +1,10 @@
 """
 Tab About - Aba 4: Sobre a Aplicação, Topologia de Rede, Fluxos SIP e Documentação Completa.
-Estilo Shadcn Luna Minimalista com diagramas e guias técnicos integrados.
+Estilo Slate / Dark Navy Suave com diagramas e guias técnicos integrados.
 """
 
 import customtkinter as ctk
+from core.version import get_version_tag
 
 
 class TabAbout(ctk.CTkScrollableFrame):
@@ -18,14 +19,14 @@ class TabAbout(ctk.CTkScrollableFrame):
         # -------------------------------------------------------------
         # 1. CARD: VISÃO GERAL & INFORMAÇÕES TÉCNICAS
         # -------------------------------------------------------------
-        overview_card = ctk.CTkFrame(self, corner_radius=8, fg_color="#18181b", border_width=1, border_color="#27272a")
+        overview_card = ctk.CTkFrame(self, corner_radius=8, fg_color="#272a37", border_width=1, border_color="#383c4e")
         overview_card.pack(fill="x", padx=10, pady=8)
 
         lbl_ov_title = ctk.CTkLabel(
             overview_card,
             text="⚡ SIPp Load Tester Pro — Guia Completo & Topologia",
             font=ctk.CTkFont(size=15, weight="bold"),
-            text_color="#f4f4f5"
+            text_color="#f1f5f9"
         )
         lbl_ov_title.pack(anchor="w", padx=16, pady=(14, 4))
 
@@ -37,7 +38,7 @@ class TabAbout(ctk.CTkScrollableFrame):
                 "transmissão real de áudio RTP (PCAP G.711 a-law), estratégias ponderadas de discagem e simulação randômica humana."
             ),
             font=ctk.CTkFont(size=12),
-            text_color="#a1a1aa",
+            text_color="#94a3b8",
             justify="left",
             wraplength=920
         )
@@ -48,31 +49,31 @@ class TabAbout(ctk.CTkScrollableFrame):
         badges_frame.pack(fill="x", padx=16, pady=(0, 14))
 
         tech_info = [
-            ("Versão", "v2.0 Pro"),
-            ("Motor SIP", "SIPp v3.2 Windows (PCAP Play)"),
-            ("Interface", "CustomTkinter (Shadcn Luna)"),
+            ("Versão", f"{get_version_tag()} Pro"),
+            ("Motor SIP", "SIPp v3.2 Windows / SipClient"),
+            ("Interface", "CustomTkinter (Slate Theme)"),
             ("Autenticação", "Digest MD5 (RFC 2617)"),
             ("Áudio RTP", "PCMA G.711 a-law (8kHz)"),
-            ("Segurança", "Sanitização estrita & Mascaramento"),
+            ("Segurança", "Sanitização & Mascaramento"),
         ]
 
         for i, (k, v) in enumerate(tech_info):
-            f_b = ctk.CTkFrame(badges_frame, fg_color="#09090b", corner_radius=6, border_width=1, border_color="#27272a")
+            f_b = ctk.CTkFrame(badges_frame, fg_color="#1a1c26", corner_radius=6, border_width=1, border_color="#383c4e")
             f_b.pack(side="left", padx=(0, 8), pady=2)
-            ctk.CTkLabel(f_b, text=f"{k}: ", font=ctk.CTkFont(size=11, weight="bold"), text_color="#71717a").pack(side="left", padx=(8, 2), pady=4)
-            ctk.CTkLabel(f_b, text=v, font=ctk.CTkFont(size=11), text_color="#f4f4f5").pack(side="left", padx=(0, 8), pady=4)
+            ctk.CTkLabel(f_b, text=f"{k}: ", font=ctk.CTkFont(size=11, weight="bold"), text_color="#94a3b8").pack(side="left", padx=(8, 2), pady=4)
+            ctk.CTkLabel(f_b, text=v, font=ctk.CTkFont(size=11), text_color="#f1f5f9").pack(side="left", padx=(0, 8), pady=4)
 
         # -------------------------------------------------------------
         # 2. CARD: TOPOLOGIA DE REDE & ARQUITETURA DE COMUNICAÇÃO
         # -------------------------------------------------------------
-        topo_card = ctk.CTkFrame(self, corner_radius=8, fg_color="#18181b", border_width=1, border_color="#27272a")
+        topo_card = ctk.CTkFrame(self, corner_radius=8, fg_color="#272a37", border_width=1, border_color="#383c4e")
         topo_card.pack(fill="x", padx=10, pady=8)
 
         lbl_topo_title = ctk.CTkLabel(
             topo_card,
             text="🌐 Topologia de Rede & Fluxo de Comunicação",
             font=ctk.CTkFont(size=14, weight="bold"),
-            text_color="#f4f4f5"
+            text_color="#f1f5f9"
         )
         lbl_topo_title.pack(anchor="w", padx=16, pady=(14, 6))
 
@@ -82,7 +83,7 @@ class TabAbout(ctk.CTkScrollableFrame):
             "│        (SIPp Load Tester Pro GUI)       │                │                                         │\n"
             "│                                         │                │                                         │\n"
             "│  ┌───────────────────────────────────┐  │                │  ┌───────────────────────────────────┐  │\n"
-            "│  │ Core Engine (Python 3.12)         │  │                │  │ PJSIP / SIP Core Engine           │  │\n"
+            "│  │ Core Engine & SipClient (Python)  │  │                │  │ PJSIP / SIP Core Engine           │  │\n"
             "│  │ - Config & Strategy Manager       │  │                │  │ - Endpoint Registry (AOR)         │  │\n"
             "│  │ - Security & Masking Layer        │  │                │  │ - Digest Authentication (401/407) │  │\n"
             "│  └─────────────────┬─────────────────┘  │                │  └─────────────────▲─────────────────┘  │\n"
@@ -103,10 +104,10 @@ class TabAbout(ctk.CTkScrollableFrame):
             topo_card,
             font=ctk.CTkFont(family="Consolas", size=10),
             height=260,
-            fg_color="#09090b",
-            text_color="#60a5fa",
+            fg_color="#1a1c26",
+            text_color="#38bdf8",
             border_width=1,
-            border_color="#27272a"
+            border_color="#383c4e"
         )
         topo_box.pack(fill="x", padx=16, pady=(4, 14))
         topo_box.insert("1.0", diagram_text)
@@ -115,19 +116,19 @@ class TabAbout(ctk.CTkScrollableFrame):
         # -------------------------------------------------------------
         # 3. CARD: FLUXO DE SINALIZAÇÃO SIP DETALHADO
         # -------------------------------------------------------------
-        flow_card = ctk.CTkFrame(self, corner_radius=8, fg_color="#18181b", border_width=1, border_color="#27272a")
+        flow_card = ctk.CTkFrame(self, corner_radius=8, fg_color="#272a37", border_width=1, border_color="#383c4e")
         flow_card.pack(fill="x", padx=10, pady=8)
 
         lbl_flow_title = ctk.CTkLabel(
             flow_card,
             text="🔄 Diagrama de Sequência SIP (Registro e Chamadas)",
             font=ctk.CTkFont(size=14, weight="bold"),
-            text_color="#f4f4f5"
+            text_color="#f1f5f9"
         )
         lbl_flow_title.pack(anchor="w", padx=16, pady=(14, 6))
 
         flow_text = (
-            "1. FLUXO DE REGISTRO DO RAMAL (register.xml):\n"
+            "1. FLUXO DE REGISTRO DO RAMAL (SipClient / RFC 3261):\n"
             "   SIPp (UAC)                                         Asterisk (UAS)\n"
             "      | ──────────────── REGISTER (sem auth) ──────────────► | (CSeq: 1 REGISTER)\n"
             "      | ◄─────────────── 401 Unauthorized (Digest) ────────── | (Desafio de autenticação nonce/realm)\n"
@@ -152,10 +153,10 @@ class TabAbout(ctk.CTkScrollableFrame):
             flow_card,
             font=ctk.CTkFont(family="Consolas", size=10),
             height=300,
-            fg_color="#09090b",
+            fg_color="#1a1c26",
             text_color="#4ade80",
             border_width=1,
-            border_color="#27272a"
+            border_color="#383c4e"
         )
         flow_box.pack(fill="x", padx=16, pady=(4, 14))
         flow_box.insert("1.0", flow_text)
@@ -164,14 +165,14 @@ class TabAbout(ctk.CTkScrollableFrame):
         # -------------------------------------------------------------
         # 4. CARD: GUIA DE ESTRATÉGIA, SIMULTANEIDADE & MODO HUMANO
         # -------------------------------------------------------------
-        strat_guide_card = ctk.CTkFrame(self, corner_radius=8, fg_color="#18181b", border_width=1, border_color="#27272a")
+        strat_guide_card = ctk.CTkFrame(self, corner_radius=8, fg_color="#272a37", border_width=1, border_color="#383c4e")
         strat_guide_card.pack(fill="x", padx=10, pady=8)
 
         lbl_sg_title = ctk.CTkLabel(
             strat_guide_card,
             text="🎯 Guia de Estratégias de Discagem & Modo Randômico",
             font=ctk.CTkFont(size=14, weight="bold"),
-            text_color="#f4f4f5"
+            text_color="#f1f5f9"
         )
         lbl_sg_title.pack(anchor="w", padx=16, pady=(14, 6))
 
@@ -196,10 +197,10 @@ class TabAbout(ctk.CTkScrollableFrame):
             strat_guide_card,
             font=ctk.CTkFont(family="Consolas", size=10),
             height=200,
-            fg_color="#09090b",
-            text_color="#e4e4e7",
+            fg_color="#1a1c26",
+            text_color="#e2e8f0",
             border_width=1,
-            border_color="#27272a"
+            border_color="#383c4e"
         )
         sg_box.pack(fill="x", padx=16, pady=(4, 14))
         sg_box.insert("1.0", sg_text)
@@ -208,14 +209,14 @@ class TabAbout(ctk.CTkScrollableFrame):
         # -------------------------------------------------------------
         # 5. CARD: CUIDADOS NO ASTERISK & DIAGNÓSTICO
         # -------------------------------------------------------------
-        ast_card = ctk.CTkFrame(self, corner_radius=8, fg_color="#18181b", border_width=1, border_color="#27272a")
+        ast_card = ctk.CTkFrame(self, corner_radius=8, fg_color="#272a37", border_width=1, border_color="#383c4e")
         ast_card.pack(fill="x", padx=10, pady=8)
 
         lbl_ast_title = ctk.CTkLabel(
             ast_card,
             text="🛠️ Cuidados no Asterisk & Diagnóstico de Rede",
             font=ctk.CTkFont(size=14, weight="bold"),
-            text_color="#f4f4f5"
+            text_color="#f1f5f9"
         )
         lbl_ast_title.pack(anchor="w", padx=16, pady=(14, 6))
 
@@ -243,10 +244,10 @@ class TabAbout(ctk.CTkScrollableFrame):
             ast_card,
             font=ctk.CTkFont(family="Consolas", size=10),
             height=220,
-            fg_color="#09090b",
-            text_color="#e4e4e7",
+            fg_color="#1a1c26",
+            text_color="#e2e8f0",
             border_width=1,
-            border_color="#27272a"
+            border_color="#383c4e"
         )
         ast_box.pack(fill="x", padx=16, pady=(4, 14))
         ast_box.insert("1.0", ast_text)

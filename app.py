@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
 SIPp Load Tester Pro - Interface Gráfica para Testes de Chamadas SIP Simultâneas
-Desenvolvido para L5 Networks
 """
 
 import sys
@@ -58,7 +57,7 @@ except ImportError as e:
     sys.exit(1)
 
 # Inicializa gerenciador de caminhos e ambiente .env
-from core.paths import ensure_env_file, BASE_DIR
+from core.paths import ensure_env_file
 ensure_env_file()
 
 # Ajusta DPI awareness no Windows para renderização nítida

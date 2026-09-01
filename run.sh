@@ -2,7 +2,6 @@
 # ============================================================
 #  run.sh - Teste de 100 chamadas simultâneas com SIPp
 #  Alvo: Asterisk | Áudio real via RTP (PCAP G.711 a-law)
-#  L5 Networks
 # ============================================================
 set -euo pipefail
 

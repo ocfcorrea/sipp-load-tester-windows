@@ -11,14 +11,11 @@ from typing import Dict, Any, List
 from core.paths import (
     CONFIG_FILE,
     ENV_FILE,
-    ENV_EXAMPLE_FILE,
-    DEFAULT_SIPP_EXE,
-    DEFAULT_PCAP_FILE,
     ensure_env_file
 )
 
 try:
-    from dotenv import load_dotenv, set_key
+    from dotenv import load_dotenv
     DOTENV_AVAILABLE = True
 except ImportError:
     DOTENV_AVAILABLE = False
@@ -26,10 +23,10 @@ except ImportError:
 
 DEFAULT_CONFIG: Dict[str, Any] = {
     # Conexão SIP (Aba 1)
-    "asterisk_ip": "192.168.1.100",
+    "asterisk_ip": "192.168.0.1",
     "asterisk_port": "5060",
     "transport": "u1",  # u1 = UDP, t1 = TCP
-    "sip_domain": "192.168.1.100",
+    "sip_domain": "192.168.0.1",
     "ramal": "1002",
     "usuario_auth": "1002",
     "senha": "",  # Protegido no .env por padrão
@@ -54,23 +51,23 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "human_min_interval_ms": 200,
     "human_max_interval_ms": 1500,
     "human_burst_chance": 15,
-    "human_token_prefix": "L5_AGENT_",
+    "human_token_prefix": "AGENT_",
     
     # Destino para Chamada Única Rápida
-    "single_call_dest": "22221864",
+    "single_call_dest": "22223333",
     
     # Destinos Ponderados (1 a 10)
     "destinations": [
-        {"enabled": True, "number": "22221864", "description": "URA Principal", "weight": 50},
-        {"enabled": True, "number": "9999", "description": "Echo Test", "weight": 30},
-        {"enabled": True, "number": "1001", "description": "Fila Atendimento", "weight": 20},
-        {"enabled": False, "number": "", "description": "", "weight": 10},
-        {"enabled": False, "number": "", "description": "", "weight": 10},
-        {"enabled": False, "number": "", "description": "", "weight": 10},
-        {"enabled": False, "number": "", "description": "", "weight": 10},
-        {"enabled": False, "number": "", "description": "", "weight": 10},
-        {"enabled": False, "number": "", "description": "", "weight": 10},
-        {"enabled": False, "number": "", "description": "", "weight": 10},
+        {"enabled": True, "number": "22223333", "description": "Ex. Texto para Identificar", "weight": 10},
+        {"enabled": False, "number": "22223333", "description": "Ex. Texto para Identificar", "weight": 10},
+        {"enabled": False, "number": "22223333", "description": "Ex. Texto para Identificar", "weight": 10},
+        {"enabled": False, "number": "22223333", "description": "Ex. Texto para Identificar", "weight": 10},
+        {"enabled": False, "number": "22223333", "description": "Ex. Texto para Identificar", "weight": 10},
+        {"enabled": False, "number": "22223333", "description": "Ex. Texto para Identificar", "weight": 10},
+        {"enabled": False, "number": "22223333", "description": "Ex. Texto para Identificar", "weight": 10},
+        {"enabled": False, "number": "22223333", "description": "Ex. Texto para Identificar", "weight": 10},
+        {"enabled": False, "number": "22223333", "description": "Ex. Texto para Identificar", "weight": 10},
+        {"enabled": False, "number": "22223333", "description": "Ex. Texto para Identificar", "weight": 10},
     ]
 }
 

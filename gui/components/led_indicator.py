@@ -1,5 +1,6 @@
 """
 LED Indicator Component - Widget visual de status com LED colorido e texto explicativo.
+Estilo Slate / Dark Navy Suave com alto contraste e brilho luminoso.
 """
 
 import tkinter as tk
@@ -10,30 +11,30 @@ class LedIndicator(ctk.CTkFrame):
     """Componente que desenha um LED luminoso (Verde, Vermelho, Amarelo, Cinza) com rótulo."""
 
     COLORS = {
-        "gray": {"outer": "#27272a", "inner": "#52525b", "glow": "#18181b"},
-        "yellow": {"outer": "#78350f", "inner": "#f59e0b", "glow": "#451a03"},
-        "green": {"outer": "#14532d", "inner": "#22c55e", "glow": "#052e16"},
-        "red": {"outer": "#7f1d1d", "inner": "#ef4444", "glow": "#450a0a"},
+        "gray": {"outer": "#383c4e", "inner": "#64748b", "glow": "#212430"},
+        "yellow": {"outer": "#b45309", "inner": "#fbbf24", "glow": "#451a03"},
+        "green": {"outer": "#15803d", "inner": "#22c55e", "glow": "#052e16"},
+        "red": {"outer": "#b91c1c", "inner": "#ef4444", "glow": "#450a0a"},
     }
 
-    def __init__(self, master, label_text: str = "Status do Registro", **kwargs):
+    def __init__(self, master, label_text: str = "Status do Registro", bg_parent: str = "#272a37", **kwargs):
         super().__init__(master, fg_color="transparent", **kwargs)
 
         self.current_state = "gray"
         self.message = "Não testado"
+        self.bg_parent = bg_parent
 
         # Canvas para desenhar o círculo com gradiente / brilho
-        self.canvas_size = 26
-        bg_color = "#18181b" if ctk.get_appearance_mode().lower() == "dark" else "#ebebeb"
+        self.canvas_size = 28
         self.canvas = tk.Canvas(
             self,
             width=self.canvas_size,
             height=self.canvas_size,
-            bg=bg_color,
+            bg=self.bg_parent,
             bd=0,
             highlightthickness=0
         )
-        self.canvas.pack(side="left", padx=(0, 10))
+        self.canvas.pack(side="left", padx=(0, 12))
 
         # Texto do status
         self.text_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -43,7 +44,7 @@ class LedIndicator(ctk.CTkFrame):
             self.text_frame,
             text=label_text,
             font=ctk.CTkFont(size=12, weight="bold"),
-            text_color="#f4f4f5",
+            text_color="#f1f5f9",
             anchor="w"
         )
         self.title_label.pack(fill="x")
@@ -52,7 +53,7 @@ class LedIndicator(ctk.CTkFrame):
             self.text_frame,
             text=self.message,
             font=ctk.CTkFont(size=12),
-            text_color="#71717a",
+            text_color="#94a3b8",
             anchor="w"
         )
         self.status_label.pack(fill="x")
@@ -85,7 +86,7 @@ class LedIndicator(ctk.CTkFrame):
         )
         # Ponto de reflexo de luz
         self.canvas.create_oval(
-            8, 8, 12, 12,
+            9, 9, 13, 13,
             fill="#ffffff", outline=""
         )
 
@@ -98,4 +99,4 @@ class LedIndicator(ctk.CTkFrame):
         elif self.current_state == "yellow":
             self.status_label.configure(text_color="#fbbf24")
         else:
-            self.status_label.configure(text_color="#9da5b4")
+            self.status_label.configure(text_color="#94a3b8")

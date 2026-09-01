@@ -1,4 +1,4 @@
-# Python
+# Python Cache & Ambientes
 __pycache__/
 *.py[cod]
 *$py.class
@@ -8,13 +8,15 @@ env/
 venv/
 ENV/
 
-# Environment & Secrets (NUNCA COMITAR)
+# Variáveis de Ambiente & Segredos (NUNCA COMITAR .env com senhas reais)
 .env
 .env.local
-.env.*
+.env.production
+.env.development
 *.env
+!.env.example
 
-# SIPp Temporaries & Logs
+# Arquivos Temporários & Logs do SIPp
 *.log
 *_errors.log
 *_messages.log
@@ -26,11 +28,19 @@ credenciais.csv
 credenciais_reg.csv
 single_credenciais.csv
 single_call.xml
+test_call.xml
+test_cred.csv
+scenarios/call.xml
 
-# IDE & OS
+# IDEs & Sistema Operacional
 .vscode/
 .idea/
 *.swp
 *.swo
 Thumbs.db
 Desktop.ini
+
+# PyInstaller Build Artifacts
+build/
+dist/
+*.spec.bak
