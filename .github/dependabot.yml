@@ -1,0 +1,21 @@
+version: 2
+updates:
+  # Monitora dependências Python (requirements.txt) mensalmente
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "python"
+
+  # Monitora as versões das GitHub Actions (.github/workflows) mensalmente
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
