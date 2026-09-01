@@ -44,3 +44,12 @@ Desktop.ini
 build/
 dist/
 *.spec.bak
+version.json
+*.tmp
+*.bak
+
+# Arquivos de Teste Temporários
+test_config.json
+test.env
+.pytest_cache/
+

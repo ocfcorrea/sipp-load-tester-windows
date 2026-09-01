@@ -1,6 +1,7 @@
 # SIPp Load Tester Pro — Gerador de Chamadas Simultâneas para Windows
 
-[![Versão](https://img.shields.io/badge/Versão-v2.0_Pro-0284c7.svg)](#-versionamento-e-geração-de-releases-executáveis)
+[![GitHub Releases](https://img.shields.io/github/v/release/ocfcorrea/TestSIPpWindows?label=Download%20.EXE%20Release&color=0284c7&logo=github)](https://github.com/ocfcorrea/TestSIPpWindows/releases)
+[![Versão](https://img.shields.io/badge/Versão-v2.0_Pro-0284c7.svg)](https://github.com/ocfcorrea/TestSIPpWindows/releases)
 [![Plataforma](https://img.shields.io/badge/Plataforma-Windows_10_|_11_|_Server-38bdf8.svg)](#-requisitos-de-sistema)
 [![Sinalização](https://img.shields.io/badge/SIP-RFC_3261_|_RFC_2617_MD5-10b981.svg)](#-como-funciona-a-transmissão-de-áudio-rtp-pcap)
 [![Segurança](https://img.shields.io/badge/Segurança-Zero_Leaks_with_.env-emerald.svg)](#-camada-de-segurança--isolamento-de-credenciais-env)

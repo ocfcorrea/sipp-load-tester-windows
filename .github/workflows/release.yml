@@ -1,0 +1,62 @@
+name: Build & Publish Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Compilar Executável Windows e Publicar Release
+    runs-on: windows-latest
+
+    steps:
+      - name: 📥 Clonar Repositório
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🐍 Configurar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: 📦 Instalar Dependências e PyInstaller
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller Pillow python-dotenv packaging darkdetect customtkinter
+
+      - name: 🔢 Gerar Versão Dinâmica
+        run: |
+          python -c "from core.version import save_version_file, get_version_tag; print('Versão:', save_version_file())"
+
+      - name: 🔨 Compilar Executável com PyInstaller
+        run: |
+          pyinstaller --noconfirm SIPp_Load_Tester_Pro.spec
+
+      - name: 🏷️ Renomear e Preparar Binários para Release
+        shell: pwsh
+        run: |
+          $TAG = python -c "from core.version import get_version_tag; print(get_version_tag())"
+          Write-Host "Criando release para a tag: $TAG"
+          Copy-Item "dist\SIPp_Load_Tester_Pro.exe" "dist\SIPp_Load_Tester_Pro_$TAG.exe"
+          Get-ChildItem dist/
+
+      - name: 🚀 Publicar Release no GitHub
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        with:
+          name: SIPp Load Tester Pro ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            dist/SIPp_Load_Tester_Pro_*.exe
+            dist/SIPp_Load_Tester_Pro.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
