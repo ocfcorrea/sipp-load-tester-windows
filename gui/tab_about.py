@@ -77,7 +77,7 @@ class TabAbout(ctk.CTkScrollableFrame):
             fg_color="#0284c7",
             hover_color="#0369a1",
             height=30,
-            command=lambda: webbrowser.open("https://github.com/ocfcorrea/SIPp-Load-Tester-Windows/releases")
+            command=lambda: webbrowser.open("https://github.com/ocfcorrea/sipp-load-tester-windows/releases")
         )
         btn_rel.pack(side="left", padx=(0, 10))
 
@@ -88,7 +88,7 @@ class TabAbout(ctk.CTkScrollableFrame):
             fg_color="#334155",
             hover_color="#475569",
             height=30,
-            command=lambda: webbrowser.open("https://github.com/ocfcorrea/SIPp-Load-Tester-Windows")
+            command=lambda: webbrowser.open("https://github.com/ocfcorrea/sipp-load-tester-windows")
         )
         btn_repo.pack(side="left", padx=(0, 10))
 

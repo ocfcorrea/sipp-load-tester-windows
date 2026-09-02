@@ -1,9 +1,9 @@
 # SIPp Load Tester Pro — Gerador de Chamadas Simultâneas para Windows
 
-[![GitHub Releases](https://img.shields.io/github/v/release/ocfcorrea/SIPp-Load-Tester-Windows?label=Download%20.EXE%20Release&color=0284c7&logo=github)](https://github.com/ocfcorrea/SIPp-Load-Tester-Windows/releases)
-[![Versão](https://img.shields.io/badge/Versão-v2.0_Pro_Auto--SemVer-0284c7.svg)](https://github.com/ocfcorrea/SIPp-Load-Tester-Windows/releases)
-[![Stars](https://img.shields.io/github/stars/ocfcorrea/SIPp-Load-Tester-Windows?style=flat&color=eab308)](https://github.com/ocfcorrea/SIPp-Load-Tester-Windows/stargazers)
-[![Forks](https://img.shields.io/github/forks/ocfcorrea/SIPp-Load-Tester-Windows?style=flat&color=38bdf8)](https://github.com/ocfcorrea/SIPp-Load-Tester-Windows/network/members)
+[![GitHub Releases](https://img.shields.io/github/v/release/ocfcorrea/sipp-load-tester-windows?label=Download%20.EXE%20Release&color=0284c7&logo=github)](https://github.com/ocfcorrea/sipp-load-tester-windows/releases)
+[![Versão](https://img.shields.io/badge/Versão-v2.0_Pro_Auto--SemVer-0284c7.svg)](https://github.com/ocfcorrea/sipp-load-tester-windows/releases)
+[![Stars](https://img.shields.io/github/stars/ocfcorrea/sipp-load-tester-windows?style=flat&color=eab308)](https://github.com/ocfcorrea/sipp-load-tester-windows/stargazers)
+[![Forks](https://img.shields.io/github/forks/ocfcorrea/sipp-load-tester-windows?style=flat&color=38bdf8)](https://github.com/ocfcorrea/sipp-load-tester-windows/network/members)
 [![Licença: MIT](https://img.shields.io/badge/Licença-MIT-yellow.svg)](LICENSE)
 [![Plataforma](https://img.shields.io/badge/Plataforma-Windows_10_|_11_|_Server-38bdf8.svg)](#-requisitos-de-sistema)
 [![Sinalização](https://img.shields.io/badge/SIP-RFC_3261_|_RFC_2617_MD5-10b981.svg)](#-como-funciona-a-transmissão-de-áudio-rtp-pcap)
@@ -18,7 +18,7 @@ O aplicativo conta com uma interface gráfica moderna em **Slate Dark UI**, moto
 
 > [!TIP]
 > ### 📦 Download Rápido da Release Pronta (.EXE)
-> Você pode baixar a versão executável standalone compilada mais recente diretamente na página de [**GitHub Releases**](https://github.com/ocfcorrea/SIPp-Load-Tester-Windows/releases). Não é necessário instalar Python, dependências ou SIPp para rodar o `.exe`.
+> Você pode baixar a versão executável standalone compilada mais recente diretamente na página de [**GitHub Releases**](https://github.com/ocfcorrea/sipp-load-tester-windows/releases). Não é necessário instalar Python, dependências ou SIPp para rodar o `.exe`.
 
 ---
 
@@ -43,7 +43,7 @@ O aplicativo conta com uma interface gráfica moderna em **Slate Dark UI**, moto
 ## 💻 Requisitos de Sistema & Pré-requisitos
 
 - **Sistema Operacional**: Windows 10, Windows 11 ou Windows Server (64-bit).
-- **Executável Standalone (.exe)**: **Não requer Python nem SIPp instalados**. Basta baixar o binário da [página de Releases](https://github.com/ocfcorrea/SIPp-Load-Tester-Windows/releases) e executar.
+- **Executável Standalone (.exe)**: **Não requer Python nem SIPp instalados**. Basta baixar o binário da [página de Releases](https://github.com/ocfcorrea/sipp-load-tester-windows/releases) e executar.
 - **Execução via Código Fonte**:
   - Python 3.9+ (homologado em Python 3.10, 3.11, 3.12 e 3.13).
   - Todas as dependências externas já vêm embutidas offline na pasta `lib/`.
@@ -368,7 +368,7 @@ Saída esperada:
 ## ❓ Perguntas Frequentes & Resolução de Problemas
 
 ### 1. "Como baixar ou gerar uma release versionada para distribuir aos clientes?"
-- **Download direto**: Acesse [GitHub Releases](https://github.com/ocfcorrea/SIPp-Load-Tester-Windows/releases) e baixe o binário compilado `.exe`.
+- **Download direto**: Acesse [GitHub Releases](https://github.com/ocfcorrea/sipp-load-tester-windows/releases) e baixe o binário compilado `.exe`.
 - **Compilação local**: Execute o arquivo `gerar_executavel.bat`. Ele criará o executável standalone na pasta `dist/` com a tag de versão numérica (ex: `SIPp_Load_Tester_Pro_v2.0.11.exe`). Você pode copiar esse arquivo para qualquer computador com Windows sem instalar nada.
 
 ### 2. "Como funciona o loop contínuo de chamadas simultâneas?"
